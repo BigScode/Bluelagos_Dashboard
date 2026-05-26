@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blue Lagos | Strategic Command Center</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* Official Blue Lagos Deep Oceanic Palette */
+        :root {
+            --bl-dark: #020611;       
+            --bl-panel: #061122;      
+            --bl-blue: #0056b3;       
+            --bl-light-blue: #0ea5e9; 
+            --bl-white: #F8FAFC;      
+            --bl-slate: #94a3b8;      
+            --bl-border: #1e293b;     
+            
+            --cat-wash: #0ea5e9;      
+            --cat-infra: #cbd5e1;     
+            --cat-health: #ef4444;    
+            --cat-edu: #f59e0b;       
+        }
+
+        body { margin: 0; font-family: 'Times New Roman', Times, serif; background-color: var(--bl-dark); color: var(--bl-white); overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+        
+        @keyframes obliqueFloat {
+            0% { text-shadow: 1px 1px 0px #002244, 2px 2px 0px #003366, 3px 3px 0px #004488, 4px 4px 15px rgba(0,165,233,0.4); transform: translateY(0px); }
+            50% { text-shadow: 2px 2px 0px #002244, 4px 4px 0px #003366, 6px 6px 0px #004488, 10px 10px 25px rgba(0,165,233,0.6); transform: translateY(-3px) scale(1.02); }
+            100% { text-shadow: 1px 1px 0px #002244, 2px 2px 0px #003366, 3px 3px 0px #004488, 4px 4px 15px rgba(0,165,233,0.4); transform: translateY(0px); }
+        }
+        
+        @keyframes oceanicRolling {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes slicerPulse {
+            0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(14, 165, 233, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+        }
+
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes rotateBorder { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+
+        /* HEADER & KPIs */
+        #top-bar { 
+            display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; 
+            background: linear-gradient(180deg, #020611 0%, #061122 100%);
+            border-bottom: 2px solid var(--bl-blue); box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 10;
+            position: relative; height: 60px;
+        }
+        
+        .branding-container {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            width: 340px; height: 75px;
+            background: var(--bl-dark); border-radius: 12px;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.9), inset 0 0 15px rgba(14,165,233,0.2);
+        }
+        .branding-container::before {
+            content: ''; position: absolute; width: 150%; height: 300%;
+            background: conic-gradient(transparent, transparent, transparent, var(--bl-light-blue));
+            animation: rotateBorder 3.5s linear infinite;
+        }
+        .branding-container::after {
+            content: ''; position: absolute; inset: 3px;
+            background: linear-gradient(180deg, #061122, #020611); border-radius: 9px;
+        }
+        
+        .branding { position: relative; z-index: 1; text-align: center; }
+        .branding h1 { margin: 0; font-size: 36px; color: #fff; font-weight: bold; letter-spacing: 5px; animation: obliqueFloat 4s ease-in-out infinite; text-transform: uppercase;}
+        .branding span { color: var(--bl-light-blue); }
+        
+        #left-kpis, #right-kpis { display: flex; gap: 20px; align-items: center;}
+        
+        .kpi { 
+            text-align: center; padding: 8px 18px; 
+            background: linear-gradient(145deg, #0a1526, #020611);
+            border: 1px solid var(--bl-border);
+            border-bottom: 3px solid var(--bl-blue);
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 1px 3px rgba(255,255,255,0.05);
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            cursor: default;
+        }
+        .kpi:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(14, 165, 233, 0.4), inset 0 1px 3px rgba(255,255,255,0.2);
+            border-bottom-color: var(--bl-light-blue);
+        }
+        
+        .kpi-title { font-size: 11px; color: var(--bl-slate); text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold;}
+        .kpi-value { font-size: 24px; font-weight: bold; color: var(--bl-white); margin-top: 3px; text-shadow: 0 0 10px rgba(14, 165, 233, 0.3);}
+
+        /* FILTER BAR */
+        #filter-bar { 
+            display: flex; gap: 20px; padding: 12px 30px; 
+            background: linear-gradient(270deg, #020611, #002244, #004488, #002244, #020611);
+            background-size: 400% 400%;
+            animation: oceanicRolling 15s ease-in-out infinite;
+            border-bottom: 1px solid var(--bl-border); align-items: center; 
+            box-shadow: inset 0 -10px 20px rgba(0,0,0,0.5);
+            justify-content: center;
+        }
+        .filter-group { display: flex; align-items: center; gap: 10px; }
+        .filter-group label { font-size: 13px; color: var(--bl-white); font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
+        select { 
+            background-color: rgba(2, 6, 17, 0.8); color: var(--bl-white); border: 1px solid var(--bl-light-blue); 
+            padding: 8px 14px; border-radius: 6px; font-family: 'Times New Roman', Times, serif; font-size: 15px; font-weight: bold; outline: none; cursor: pointer; 
+            transition: 0.3s; backdrop-filter: blur(8px);
+            animation: slicerPulse 3.5s infinite;
+        }
+        select:hover { border-color: #fff; background-color: rgba(14, 165, 233, 0.3); transform: scale(1.05);}
+        
+        button.reset-btn { 
+            background: linear-gradient(90deg, #0056b3, #0ea5e9); color: #fff; border: none; padding: 9px 20px; 
+            border-radius: 6px; cursor: pointer; font-family: 'Times New Roman', Times, serif; font-size: 14px; font-weight: bold; text-transform: uppercase; 
+            transition: 0.3s; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); letter-spacing: 1px;
+        }
+        button.reset-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(14, 165, 233, 0.6); }
+
+        /* WORKSPACE */
+        #workspace { display: flex; flex: 1; height: calc(100vh - 140px); position: relative; background-color: var(--bl-dark); }
+        
+        #left-panel { width: 300px; background-color: var(--bl-panel); border-right: 1px solid var(--bl-border); display: flex; flex-direction: column; z-index: 1000; box-shadow: 10px 0 30px rgba(0,0,0,0.6);}
+        .panel-header { padding: 18px; font-size: 16px; font-weight: bold; color: var(--bl-white); text-transform: uppercase; border-bottom: 1px solid var(--bl-border); letter-spacing: 2px; background-color: #040d1a;}
+        #roster { flex: 1; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
+        .roster-item { padding: 16px 20px; border-bottom: 1px solid var(--bl-border); cursor: pointer; transition: all 0.3s ease; animation: slideUpFade 0.5s ease-out backwards;}
+        .roster-item:hover { background-color: rgba(14, 165, 233, 0.15); border-left: 5px solid var(--bl-light-blue); padding-left: 25px; }
+        .roster-name { font-weight: bold; font-size: 16px; color: var(--bl-white); margin-bottom: 4px;}
+        .roster-lga { font-size: 13px; color: var(--bl-slate); font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
+
+        /* MAP WRAPPER & LABELS */
+        #map-wrapper { flex: 1; padding: 15px; display: flex; flex-direction: column; }
+        #map { 
+            flex: 1; background-color: #000; 
+            border-radius: 20px; 
+            overflow: hidden; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.9), inset 0 0 20px rgba(0,0,0,0.8);
+            border: 1px solid var(--bl-border);
+        }
+        .leaflet-tile-pane { filter: brightness(0.65) contrast(1.4) saturate(0.8) sepia(20%) hue-rotate(190deg); }
+        
+        .leaflet-tooltip.map-label {
+            background: transparent; border: none; box-shadow: none;
+            color: var(--bl-white); font-family: 'Times New Roman', Times, serif;
+            font-weight: bold; font-size: 10px; 
+            text-shadow: 2px 2px 5px #000, -1px -1px 3px #000;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        /* 🌊 FIXED TACTICAL RADAR & FACILITY LINES 🌊 */
+        .radar-pulse-container {
+            pointer-events: none;
+        }
+        .radar-pulse-inner {
+            width: 100%; height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--bl-light-blue);
+            background: radial-gradient(circle, rgba(14,165,233,0.4) 0%, rgba(14,165,233,0) 70%);
+            animation: pulseSweep 2.5s infinite cubic-bezier(0.1, 0.5, 0.9, 0.1);
+        }
+        
+        @keyframes pulseSweep {
+            0% { transform: scale(0.1); opacity: 1; }
+            100% { transform: scale(3.5); opacity: 0; }
+        }
+
+        .facility-tooltip {
+            background: rgba(2, 6, 17, 0.95);
+            border: 1px solid var(--bl-light-blue);
+            color: #fff;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 4px 6px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(14,165,233,0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        /* REDUCED COMMUNITY MAP POPUP */
+        .leaflet-popup-content-wrapper { 
+            background-color: rgba(6, 17, 34, 0.95); 
+            color: #fff; 
+            border-radius: 6px; 
+            border: 1px solid var(--bl-light-blue); 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.8);
+            padding: 0;
+        }
+        .leaflet-popup-content { margin: 8px 12px; line-height: 1.2; }
+        .leaflet-popup-tip { background-color: rgba(6, 17, 34, 0.95); }
+        .min-popup { font-family: 'Times New Roman', Times, serif; text-align: center; padding: 2px;}
+        .min-popup b { color: var(--bl-white); font-size: 13px; display: block; margin-bottom: 4px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;}
+        .cat-badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; text-transform: uppercase; color: #020611; letter-spacing: 1px; font-family: sans-serif;}
+
+        /* RIGHT PANE: CHARTS */
+        #right-panel { width: 380px; background-color: var(--bl-panel); border-left: 1px solid var(--bl-border); display: flex; flex-direction: column; z-index: 1000; overflow-y: auto; box-shadow: -10px 0 30px rgba(0,0,0,0.6);}
+        
+        #macro-view { padding: 15px; display: flex; flex-direction: column; gap: 15px; }
+        .chart-container { background: #040d1a; padding: 15px; border-radius: 12px; border: 1px solid rgba(14,165,233,0.2); box-shadow: inset 0 0 15px rgba(0,0,0,0.5); animation: slideUpFade 0.6s ease-out backwards;}
+        .chart-title { font-size: 13px; color: var(--bl-light-blue); text-transform: uppercase; margin-bottom: 10px; text-align: center; font-weight: bold; letter-spacing: 2px;}
+        .chart-wrapper { position: relative; height: 160px; width: 100%; }
+
+        /* THE EXPANDED MICRO-VIEW DOSSIER */
+        #micro-view { padding: 0; display: none; animation: slideUpFade 0.4s ease-out;}
+        .detail-header { padding: 25px; background: linear-gradient(135deg, #003366 0%, #020611 100%); border-bottom: 1px solid var(--bl-border); position: relative;}
+        #close-btn { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); border: 2px solid var(--bl-slate); color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 1; transition: 0.3s; font-family: sans-serif;}
+        #close-btn:hover { background: var(--cat-health); border-color: var(--cat-health); transform: rotate(90deg);}
+        #target-name { font-size: 26px; font-weight: bold; color: #fff; margin-bottom: 8px; line-height: 1.2; text-transform: uppercase; text-shadow: 0 4px 10px rgba(0,0,0,0.5);}
+        #target-lga { font-size: 13px; color: var(--bl-light-blue); font-weight: bold; letter-spacing: 2px; text-transform: uppercase;}
+        
+        .detail-body { padding: 20px; }
+        
+        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+        .span-3 { grid-column: span 3; }
+        .info-box { background: #040d1a; padding: 12px; border-radius: 8px; border: 1px solid rgba(14,165,233,0.15); transition: 0.3s; box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);}
+        .info-box:hover { border-color: var(--bl-light-blue); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.4);}
+        .info-label { font-size: 9px; color: var(--bl-slate); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; font-weight: bold;}
+        .info-value { font-size: 14px; color: #fff; font-weight: bold; word-break: break-word; line-height: 1.3;}
+
+        .spatial-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px; }
+        .hosp-text { color: var(--cat-health); }
+        .sch-text { color: var(--cat-edu); }
+
+        .intel-box { background: linear-gradient(180deg, rgba(14, 165, 233, 0.1) 0%, rgba(2, 6, 17, 0) 100%); border: 1px solid var(--bl-light-blue); border-radius: 12px; padding: 20px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.4);}
+        .intel-badge { position: absolute; top: -12px; left: 20px; background: var(--bl-light-blue); color: #020611; padding: 4px 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; border-radius: 6px; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.5);}
+        .intel-text { font-size: 15px; line-height: 1.6; color: var(--bl-white); margin-top: 10px;}
+    </style>
+</head>
+<body>
+
+    <div id="top-bar">
+        <div id="left-kpis">
+            <div class="kpi">
+                <div class="kpi-title">Settlements</div>
+                <div class="kpi-value" id="kpi-settlements">0</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-title">Households</div>
+                <div class="kpi-value" id="kpi-households">0</div>
+            </div>
+            <div class="kpi">
+                <div class="kpi-title">Est. Population</div>
+                <div class="kpi-value" id="kpi-pop">0</div>
+            </div>
+        </div>
+
+        <div class="branding-container">
+            <div class="branding">
+                <h1>Blue<span>Lagos</span></h1>
+            </div>
+        </div>
+
+        <div id="right-kpis">
+            <div class="kpi">
+                <div class="kpi-title">Reg. Voters</div>
+                <div class="kpi-value" id="kpi-voters">0</div>
+            </div>
+            <div class="kpi" style="border-bottom-color: var(--cat-health);">
+                <div class="kpi-title">Critical Alerts</div>
+                <div class="kpi-value" id="kpi-critical" style="color: var(--cat-health); text-shadow: 0 0 15px rgba(239, 68, 68, 0.6);">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="filter-bar">
+        <div class="filter-group">
+            <label for="filter-phase">Phase:</label>
+            <select id="filter-phase" onchange="applyFilters()"><option value="ALL">All Phases</option></select>
+        </div>
+        <div class="filter-group">
+            <label for="filter-district">District:</label>
+            <select id="filter-district" onchange="handleDistrictChange()"><option value="ALL">All Districts</option></select>
+        </div>
+        <div class="filter-group">
+            <label for="filter-lga">LGA:</label>
+            <select id="filter-lga" onchange="applyFilters()"><option value="ALL">All LGAs</option></select>
+        </div>
+        <div class="filter-group">
+            <label for="filter-cat">Priority:</label>
+            <select id="filter-cat" onchange="applyFilters()"><option value="ALL">All Priorities</option></select>
+        </div>
+        <button class="reset-btn" onclick="resetFilters()">Reset Global Filters</button>
+    </div>
+
+    <div id="workspace">
+        <div id="left-panel">
+            <div class="panel-header">Settlement Roster</div>
+            <ul id="roster"></ul>
+        </div>
+
+        <div id="map-wrapper">
+            <div id="map"></div>
+        </div>
+
+        <div id="right-panel">
+            <div id="macro-view">
+                <div class="chart-container" style="animation-delay: 0.1s;">
+                    <div class="chart-title">Intervention Priority Split</div>
+                    <div class="chart-wrapper"><canvas id="pieChart"></canvas></div>
+                </div>
+                <div class="chart-container" style="animation-delay: 0.2s;">
+                    <div class="chart-title">Geographic Access Route</div>
+                    <div class="chart-wrapper"><canvas id="accessChart"></canvas></div>
+                </div>
+                <div class="chart-container" style="animation-delay: 0.3s;">
+                    <div class="chart-title">Demographics Overview</div>
+                    <div class="chart-wrapper"><canvas id="demographicsChart"></canvas></div>
+                </div>
+            </div>
+
+            <div id="micro-view">
+                <div class="detail-header">
+                    <button id="close-btn" onclick="closeDetails()">×</button>
+                    <div id="target-name">Community Name</div>
+                    <div id="target-lga">LGA • District</div>
+                </div>
+                <div class="detail-body">
+                    <div class="info-grid">
+                        <div class="info-box span-3">
+                            <div class="info-label">Community Head / Ruler</div>
+                            <div class="info-value" id="target-ruler">--</div>
+                        </div>
+                        
+                        <div class="info-box">
+                            <div class="info-label">Households</div>
+                            <div class="info-value" id="target-households-detail">--</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-label">Est. Pop</div>
+                            <div class="info-value" id="target-pop">--</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-label">Reg. Voters</div>
+                            <div class="info-value" id="target-voters-detail">--</div>
+                        </div>
+
+                        <div class="info-box">
+                            <div class="info-label">Primary Occupation</div>
+                            <div class="info-value" id="target-occ" style="text-transform: capitalize;">--</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-label">Access Route</div>
+                            <div class="info-value" id="target-route" style="text-transform: capitalize;">--</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-label">Govt Presence</div>
+                            <div class="info-value" id="target-govt" style="text-transform: capitalize;">--</div>
+                        </div>
+
+                        <div class="info-box span-3">
+                            <div class="info-label">Existing Amenities</div>
+                            <div class="info-value" id="target-amenities">--</div>
+                        </div>
+                        <div class="info-box span-3">
+                            <div class="info-label">Stated Priority Need</div>
+                            <div class="info-value" id="target-raw" style="color: var(--bl-light-blue); font-style: italic; font-size: 15px;">--</div>
+                        </div>
+                    </div>
+
+                    <div class="spatial-grid">
+                        <div class="info-box">
+                            <div class="info-label">🏥 Nearest Health Facility</div>
+                            <div class="info-value" id="target-hosp-name">--</div>
+                            <div class="info-label" style="margin-top:8px;">Distance & Type</div>
+                            <div class="info-value hosp-text" id="target-hosp-dist" style="font-size: 12px;">--</div>
+                        </div>
+                        <div class="info-box">
+                            <div class="info-label">🏫 Nearest Education Facility</div>
+                            <div class="info-value" id="target-sch-name">--</div>
+                            <div class="info-label" style="margin-top:8px;">Distance & Category</div>
+                            <div class="info-value sch-text" id="target-sch-dist" style="font-size: 12px;">--</div>
+                        </div>
+                    </div>
+
+                    <div class="intel-box">
+                        <div class="intel-badge">Strategic Intelligence Brief</div>
+                        <div class="intel-text" id="target-ai">Generating intelligence...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- MAP INITIALIZATION ---
+        const map = L.map('map', { zoomControl: false }).setView([6.5244, 3.3792], 12);
+        L.control.zoom({ position: 'topright' }).addTo(map);
+        
+        // 🔥 NEW: Google Satellite Hybrid (Deep Zoom) 🔥
+        L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+            maxZoom: 22, 
+            subdomains:['mt0','mt1','mt2','mt3'],
+            attribution: '&copy; Google Maps'
+        }).addTo(map);
+
+        // --- DATABASE CONNECTION ---
+        const SUPABASE_URL = 'https://wwmlcreroanokrmekmpe.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3bWxjcmVyb2Fub2tybWVrbXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjQ2OTksImV4cCI6MjA5NTA0MDY5OX0.WussxoM38CmBL5xMnbRxbE9AI6igk05aDqISQoJZ984'; 
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let masterData = [];
+        let markers = [];
+        let pieChartInstance, accessChartInstance, demoChartInstance = null;
+        
+        let activeRadar = null;
+        let activeLines = [];
+
+        const catColors = {
+            "WASH (Water & Sanitation)": "#0ea5e9", 
+            "Infrastructure & Roads": "#cbd5e1",    
+            "Healthcare Intervention": "#ef4444",   
+            "Educational Development": "#f59e0b",   
+            "General Civic Support": "#6366f1"      
+        };
+
+        function categorizeProject(text) {
+            text = (text || "").toLowerCase();
+            if(text.includes('water') || text.includes('borehole') || text.includes('drain')) return "WASH (Water & Sanitation)";
+            if(text.includes('road') || text.includes('bridge') || text.includes('transformer')) return "Infrastructure & Roads";
+            if(text.includes('hospital') || text.includes('health') || text.includes('clinic')) return "Healthcare Intervention";
+            if(text.includes('school') || text.includes('education')) return "Educational Development";
+            return "General Civic Support";
+        }
+
+        function formatAdminString(str) {
+            if (!str || str === "null") return "Unknown";
+            return str.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        }
+
+        async function initApp() {
+            const { data, error } = await supabaseClient.from('blue_lagos_survey_raw').select('*');
+            if (error) { console.error(error); return; }
+
+            masterData = data.map(row => {
+                let lat = parseFloat(row.pulled_lat || row.y || row.lat);
+                let lon = parseFloat(row.pulled_lon || row.x || row.lon);
+                
+                let routeText = (row.primary_visit_route || "").toLowerCase();
+                let accessRoute = "Mixed / Land & Water";
+                if (routeText.includes("water") || routeText.includes("boat") || routeText.includes("canoe")) {
+                    accessRoute = (routeText.includes("road") || routeText.includes("land")) ? "Mixed / Land & Water" : "Water Access Only";
+                } else if (routeText.includes("road") || routeText.includes("land") || routeText.includes("car")) {
+                    accessRoute = "Land Access Only";
+                }
+
+                let priorityProject = row.priority_needed_amenities || "No specific priority recorded";
+                let category = categorizeProject(priorityProject);
+
+                return {
+                    ...row,
+                    clean_lat: lat,
+                    clean_lon: lon,
+                    clean_lga: formatAdminString(row.localgovt || row.pulled_lga),
+                    clean_district: row.senatorial_district || row.pulled_senatorial_district || "Unknown District",
+                    hosp_name: row.nearest_hospital_name || "None in Range",
+                    hosp_dist: row.dist_to_hospital_km !== null ? parseFloat(row.dist_to_hospital_km).toFixed(2) : null,
+                    hosp_type: row.nearest_hospital_type || "N/A",
+                    sch_name: row.nearest_school_name || "None in Range",
+                    sch_dist: row.dist_to_school_km !== null ? parseFloat(row.dist_to_school_km).toFixed(2) : null,
+                    sch_type: row.nearest_school_type || "N/A",
+                    clean_phase: row.select_phase || "Community Data", 
+                    clean_pop: parseInt(row.estimated_population) || 0,
+                    clean_households: parseInt(row.household_estimated_population) || 0, 
+                    clean_voters: parseInt(row.estimated_registered_voters) || 0,
+                    clean_women: parseInt(row.estimated_number_of_women) || 0,
+                    clean_youth: parseInt(row.estimated_number_of_youth) || 0,
+                    clean_name: row.final_name || 'Unnamed Settlement',
+                    clean_ruler: `${row.community_ruler_title || ""} ${row.input_the_full_name_of_the_community_head || ""}`.trim() || 'Data Unavailable',
+                    clean_project: priorityProject,
+                    clean_occ: row.primary_occupation || "Data Unavailable",
+                    clean_route: accessRoute,
+                    clean_govt: row.state_of_past_govt_presence || "Unknown",
+                    clean_amenities: row.existing_amenities || "None recorded",
+                    ai_category: category,
+                    color: catColors[category]
+                };
+            }).filter(row => !isNaN(row.clean_lat) && !isNaN(row.clean_lon));
+
+            populateFilterDropdowns();
+            renderDashboard(masterData);
+        }
+
+        function populateFilterDropdowns() {
+            let project_phases = ["Phase 1", "Phase 2", "Phase 3", "Community Data"];
+            masterData.forEach(d => { if(!project_phases.includes(d.clean_phase) && d.clean_phase) project_phases.push(d.clean_phase); });
+            project_phases.sort();
+
+            const districts = [...new Set(masterData.map(d => d.clean_district))].filter(Boolean).sort();
+            const cats = [...new Set(masterData.map(d => d.ai_category))].filter(Boolean).sort();
+
+            const pSelect = document.getElementById('filter-phase');
+            const dSelect = document.getElementById('filter-district');
+            const cSelect = document.getElementById('filter-cat');
+
+            project_phases.forEach(p => pSelect.add(new Option(p, p)));
+            districts.forEach(d => dSelect.add(new Option(d, d)));
+            cats.forEach(c => cSelect.add(new Option(c, c)));
+            
+            updateLgaDropdown("ALL");
+        }
+
+        function updateLgaDropdown(selectedDistrict) {
+            const lSelect = document.getElementById('filter-lga');
+            lSelect.innerHTML = '<option value="ALL">All LGAs</option>'; 
+            
+            let lgas = [];
+            if (selectedDistrict === "ALL") {
+                lgas = [...new Set(masterData.map(d => d.clean_lga))].filter(Boolean).sort();
+            } else {
+                lgas = [...new Set(masterData.filter(d => d.clean_district === selectedDistrict).map(d => d.clean_lga))].filter(Boolean).sort();
+            }
+            
+            lgas.forEach(l => lSelect.add(new Option(l, l)));
+        }
+
+        function handleDistrictChange() {
+            const dVal = document.getElementById('filter-district').value;
+            updateLgaDropdown(dVal); 
+            applyFilters();
+        }
+
+        function applyFilters() {
+            closeDetails();
+            const pVal = document.getElementById('filter-phase').value;
+            const dVal = document.getElementById('filter-district').value;
+            const lVal = document.getElementById('filter-lga').value;
+            const cVal = document.getElementById('filter-cat').value;
+
+            let filtered = masterData;
+            if (pVal !== "ALL") filtered = filtered.filter(d => d.clean_phase === pVal);
+            if (dVal !== "ALL") filtered = filtered.filter(d => d.clean_district === dVal);
+            if (lVal !== "ALL") filtered = filtered.filter(d => d.clean_lga === lVal);
+            if (cVal !== "ALL") filtered = filtered.filter(d => d.ai_category === cVal);
+
+            renderDashboard(filtered);
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-phase').value = "ALL";
+            document.getElementById('filter-district').value = "ALL";
+            document.getElementById('filter-cat').value = "ALL";
+            updateLgaDropdown("ALL"); 
+            document.getElementById('filter-lga').value = "ALL";
+            applyFilters();
+        }
+
+        function renderDashboard(data) {
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+            const rosterList = document.getElementById('roster');
+            rosterList.innerHTML = '';
+
+            let totalPop = 0;
+            let totalVoters = 0;
+            let totalHouseholds = 0;
+            let criticalCount = 0;
+
+            data.forEach((row, index) => {
+                totalPop += row.clean_pop;
+                totalVoters += row.clean_voters;
+                totalHouseholds += row.clean_households;
+                
+                let isCrit = row.clean_project.toLowerCase().includes('urgent') || row.clean_project.toLowerCase().includes('critical') || row.ai_category === "Healthcare Intervention";
+                if (isCrit) criticalCount++;
+
+                let marker = L.circleMarker([row.clean_lat, row.clean_lon], {
+                    radius: 8, fillColor: row.color, color: '#fff', weight: 2, fillOpacity: 0.95
+                }).bindTooltip(row.clean_name, {
+                    permanent: true, direction: 'right', className: 'map-label', offset: [5, 0]
+                }).bindPopup(`
+                    <div class="min-popup">
+                        <b>${row.clean_name}</b>
+                        <div class="cat-badge" style="background-color: ${row.color};">${row.ai_category}</div>
+                    </div>
+                `).addTo(map);
+                
+                markers.push(marker);
+
+                let li = document.createElement('li');
+                li.className = 'roster-item';
+                li.style.animationDelay = `${index * 0.05}s`;
+                li.innerHTML = `
+                    <div class="roster-name">${row.clean_name}</div>
+                    <div class="roster-lga" style="color: ${row.color};">${row.ai_category}</div>
+                `;
+                
+                const triggerDeepDive = () => {
+                    // 1. Clear active radar and lines
+                    if (activeRadar) map.removeLayer(activeRadar);
+                    activeLines.forEach(layer => map.removeLayer(layer));
+                    activeLines = [];
+
+                    // 2. Fly map to coordinates
+                    map.flyTo([row.clean_lat, row.clean_lon], 14, { animate: true, duration: 2, easeLinearity: 0.25 });
+                    marker.openPopup();
+                    openCommunityDetails(row, isCrit);
+
+                    // 3. Setup the perfectly centered radar pulse
+                    let radarIcon = L.divIcon({ 
+                        html: '<div class="radar-pulse-inner"></div>',
+                        className: 'radar-pulse-container', 
+                        iconSize: [100, 100], 
+                        iconAnchor: [50, 50] 
+                    });
+                    activeRadar = L.marker([row.clean_lat, row.clean_lon], { icon: radarIcon, interactive: false }).addTo(map);
+
+                    const drawFacilityLine = (distanceKm, name, color, angleDeg) => {
+                        if (!distanceKm || distanceKm === 0) return;
+                        
+                        const angleRad = angleDeg * (Math.PI / 180);
+                        const latOffset = (distanceKm / 111) * Math.cos(angleRad);
+                        const lonOffset = (distanceKm / 111) * Math.sin(angleRad);
+                        
+                        const targetLat = row.clean_lat + latOffset;
+                        const targetLon = row.clean_lon + lonOffset;
+
+                        let line = L.polyline([[row.clean_lat, row.clean_lon], [targetLat, targetLon]], { color: color, weight: 2, dashArray: '5, 10', opacity: 0.8 }).addTo(map);
+                        let endpoint = L.circleMarker([targetLat, targetLon], { radius: 4, fillColor: color, color: '#fff', weight: 1, fillOpacity: 1 }).addTo(map);
+                        
+                        let label = L.tooltip({ permanent: true, direction: 'top', className: 'facility-tooltip', offset: [0, -5] })
+                            .setLatLng([targetLat, targetLon])
+                            .setContent(`<span style="color:${color};">${distanceKm} km</span><br/>${name}`)
+                            .addTo(map);
+
+                        activeLines.push(line, endpoint, label);
+                    };
+
+                    if (row.hosp_dist !== null && row.hosp_dist !== "N/A") drawFacilityLine(row.hosp_dist, row.hosp_name, "var(--cat-health)", 45);
+                    if (row.sch_dist !== null && row.sch_dist !== "N/A") drawFacilityLine(row.sch_dist, row.sch_name, "var(--cat-edu)", 135);
+                };
+
+                li.addEventListener('click', triggerDeepDive);
+                marker.on('click', triggerDeepDive);
+                rosterList.appendChild(li);
+            });
+
+            document.getElementById('kpi-settlements').innerText = data.length;
+            document.getElementById('kpi-pop').innerText = totalPop.toLocaleString();
+            document.getElementById('kpi-households').innerText = totalHouseholds.toLocaleString();
+            document.getElementById('kpi-voters').innerText = totalVoters.toLocaleString();
+            document.getElementById('kpi-critical').innerText = criticalCount;
+
+            renderCharts(data);
+        }
+
+        function renderCharts(data) {
+            Chart.defaults.color = '#cbd5e1';
+            Chart.defaults.borderColor = '#1e293b';
+            Chart.defaults.font.family = "'Times New Roman', Times, serif";
+            Chart.defaults.font.size = 13;
+
+            const animConfig = { duration: 2000, easing: 'easeOutQuart' };
+
+            let catCounts = {};
+            data.forEach(d => { catCounts[d.ai_category] = (catCounts[d.ai_category] || 0) + 1; });
+            let pieLabels = Object.keys(catCounts);
+            let pieData = Object.values(catCounts);
+            let pieColors = pieLabels.map(label => catColors[label]);
+
+            if (pieChartInstance) pieChartInstance.destroy();
+            pieChartInstance = new Chart(document.getElementById('pieChart').getContext('2d'), {
+                type: 'doughnut',
+                data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: pieColors, borderWidth: 2, borderColor: '#040d1a', hoverOffset: 8 }] },
+                options: { responsive: true, maintainAspectRatio: false, animation: animConfig, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { weight: 'bold' } } } }, cutout: '60%' }
+            });
+
+            let routeCounts = { "Land Access Only": 0, "Water Access Only": 0, "Mixed / Land & Water": 0 };
+            data.forEach(d => { if(routeCounts[d.clean_route] !== undefined) routeCounts[d.clean_route]++; });
+
+            if (accessChartInstance) accessChartInstance.destroy();
+            accessChartInstance = new Chart(document.getElementById('accessChart').getContext('2d'), {
+                type: 'polarArea',
+                data: { 
+                    labels: Object.keys(routeCounts), 
+                    datasets: [{ data: Object.values(routeCounts), backgroundColor: ['#0ea5e9', '#6366f1', '#f59e0b'], borderWidth: 2, borderColor: '#040d1a' }] 
+                },
+                options: { responsive: true, maintainAspectRatio: false, animation: animConfig, scales: { r: { ticks: { display: false }, grid: { color: 'rgba(255,255,255,0.1)' } } }, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { weight: 'bold' } } } } }
+            });
+
+            let totalYouth = data.reduce((sum, d) => sum + d.clean_youth, 0);
+            let totalWomen = data.reduce((sum, d) => sum + d.clean_women, 0);
+            let totalPop = data.reduce((sum, d) => sum + d.clean_pop, 0);
+            let other = totalPop - (totalYouth + totalWomen);
+            if(other < 0) other = 0; 
+
+            if (demoChartInstance) demoChartInstance.destroy();
+            demoChartInstance = new Chart(document.getElementById('demographicsChart').getContext('2d'), {
+                type: 'pie',
+                data: { 
+                    labels: ['Est. Youth', 'Est. Women', 'Other'], 
+                    datasets: [{ data: [totalYouth, totalWomen, other], backgroundColor: ['#0ea5e9', '#8b5cf6', '#cbd5e1'], borderWidth: 2, borderColor: '#040d1a', hoverOffset: 8 }] 
+                },
+                options: { responsive: true, maintainAspectRatio: false, animation: animConfig, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { weight: 'bold' } } } } }
+            });
+        }
+
+        function openCommunityDetails(row, isCrit) {
+            document.getElementById('macro-view').style.display = 'none';
+            document.getElementById('micro-view').style.display = 'block';
+
+            document.getElementById('target-name').innerText = row.clean_name;
+            document.getElementById('target-lga').innerText = `${row.clean_lga} • ${row.clean_district}`;
+            
+            document.getElementById('target-ruler').innerText = row.clean_ruler;
+            document.getElementById('target-households-detail').innerText = row.clean_households.toLocaleString();
+            document.getElementById('target-pop').innerText = row.clean_pop.toLocaleString();
+            document.getElementById('target-voters-detail').innerText = row.clean_voters.toLocaleString();
+            document.getElementById('target-occ').innerText = row.clean_occ;
+            document.getElementById('target-route').innerText = row.clean_route;
+            document.getElementById('target-govt').innerText = row.clean_govt;
+            document.getElementById('target-amenities').innerText = row.clean_amenities;
+            document.getElementById('target-raw').innerText = `"${row.clean_project}"`;
+
+            document.getElementById('target-hosp-name').innerText = row.hosp_name;
+            document.getElementById('target-hosp-dist').innerText = row.hosp_dist ? `${row.hosp_dist} km • ${row.hosp_type}` : "--";
+            
+            document.getElementById('target-sch-name').innerText = row.sch_name;
+            document.getElementById('target-sch-dist').innerText = row.sch_dist ? `${row.sch_dist} km • ${row.sch_type}` : "--";
+
+            let riskLvl = isCrit ? "<span style='color: #ef4444;'>CRITICAL</span>" : "<span style='color: #f59e0b;'>MODERATE</span>";
+            let voterImpact = row.clean_voters > 0 ? ` impacting a registered voter base of ${row.clean_voters.toLocaleString()}` : "";
+            
+            let briefText = `<b>Strategic Evaluation:</b> The primary socio-economic bottleneck for this settlement operates under <b style="color: ${row.color};">${row.ai_category}</b> parameters. Resolving the stated intervention requirement ("${row.clean_project}") is classified as a <b>${riskLvl}</b> administrative priority${voterImpact}. Primary logistics mapped via ${row.clean_route}.`;
+            
+            document.getElementById('target-ai').innerHTML = briefText;
+        }
+
+        function closeDetails() {
+            document.getElementById('micro-view').style.display = 'none';
+            document.getElementById('macro-view').style.display = 'flex';
+            
+            if (activeRadar) map.removeLayer(activeRadar);
+            activeLines.forEach(layer => map.removeLayer(layer));
+            activeLines = [];
+            
+            renderCharts(masterData);
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
