@@ -244,6 +244,14 @@
         .intel-box { background: linear-gradient(180deg, rgba(14, 165, 233, 0.1) 0%, rgba(2, 6, 17, 0) 100%); border: 1px solid var(--bl-light-blue); border-radius: 12px; padding: 20px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.4);}
         .intel-badge { position: absolute; top: -12px; left: 20px; background: var(--bl-light-blue); color: #020611; padding: 4px 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; border-radius: 6px; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.5);}
         .intel-text { font-size: 15px; line-height: 1.6; color: var(--bl-white); margin-top: 10px;}
+
+        /* 📱 MOBILE RESPONSIVE PATCH */
+        @media screen and (max-width: 850px) {
+            #workspace { flex-direction: column !important; height: auto !important; }
+            #left-panel { width: 100% !important; height: 300px !important; order: 2; }
+            #map-wrapper { width: 100% !important; order: 1; height: 300px !important; }
+            #right-panel { width: 100% !important; order: 3; }
+        }
     </style>
 </head>
 <body>
@@ -406,16 +414,18 @@
         const map = L.map('map', { zoomControl: false }).setView([6.5244, 3.3792], 12);
         L.control.zoom({ position: 'topright' }).addTo(map);
         
-        // 🔥 NEW: Google Satellite Hybrid (Deep Zoom) 🔥
         L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
             maxZoom: 22, 
             subdomains:['mt0','mt1','mt2','mt3'],
             attribution: '&copy; Google Maps'
         }).addTo(map);
 
+        // Fix Map Resize for Mobile
+        window.addEventListener("resize", () => { map.invalidateSize(); });
+
         // --- DATABASE CONNECTION ---
         const SUPABASE_URL = 'https://wwmlcreroanokrmekmpe.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3bWxjcmVyb2Fub2tybWVrbXBlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjQ2OTksImV4cCI6MjA5NTA0MDY5OX0.WussxoM38CmBL5xMnbRxbE9AI6igk05aDqISQoJZ984'; 
+        const SUPABASE_KEY = 'sb_publishable_JAZpO-Tl4hrqu78JIG4gig_yn5fkRt3'; 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let masterData = [];
@@ -605,17 +615,14 @@
                 `;
                 
                 const triggerDeepDive = () => {
-                    // 1. Clear active radar and lines
                     if (activeRadar) map.removeLayer(activeRadar);
                     activeLines.forEach(layer => map.removeLayer(layer));
                     activeLines = [];
 
-                    // 2. Fly map to coordinates
                     map.flyTo([row.clean_lat, row.clean_lon], 14, { animate: true, duration: 2, easeLinearity: 0.25 });
                     marker.openPopup();
                     openCommunityDetails(row, isCrit);
 
-                    // 3. Setup the perfectly centered radar pulse
                     let radarIcon = L.divIcon({ 
                         html: '<div class="radar-pulse-inner"></div>',
                         className: 'radar-pulse-container', 
@@ -626,17 +633,14 @@
 
                     const drawFacilityLine = (distanceKm, name, color, angleDeg) => {
                         if (!distanceKm || distanceKm === 0) return;
-                        
                         const angleRad = angleDeg * (Math.PI / 180);
                         const latOffset = (distanceKm / 111) * Math.cos(angleRad);
                         const lonOffset = (distanceKm / 111) * Math.sin(angleRad);
-                        
                         const targetLat = row.clean_lat + latOffset;
                         const targetLon = row.clean_lon + lonOffset;
 
                         let line = L.polyline([[row.clean_lat, row.clean_lon], [targetLat, targetLon]], { color: color, weight: 2, dashArray: '5, 10', opacity: 0.8 }).addTo(map);
                         let endpoint = L.circleMarker([targetLat, targetLon], { radius: 4, fillColor: color, color: '#fff', weight: 1, fillOpacity: 1 }).addTo(map);
-                        
                         let label = L.tooltip({ permanent: true, direction: 'top', className: 'facility-tooltip', offset: [0, -5] })
                             .setLatLng([targetLat, targetLon])
                             .setContent(`<span style="color:${color};">${distanceKm} km</span><br/>${name}`)
