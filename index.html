@@ -20,7 +20,6 @@
   --edge: #1e3a5f; --muted: #8fb0ca; --ghost: #64849e;
   --white: #ffffff; --cream: #f0f6ff;
   --red: #ef4444; --amber: #f59e0b; --green: #10b981;
-  /* Reduced panel sizes to INCREASE map size */
   --panel-w: 280px; 
   --right-w: 360px;
   --font-main: 'Times New Roman', Times, serif;
@@ -52,31 +51,31 @@ body { font-family: var(--font-main); background: var(--ink); color: var(--white
 .spin-ring { width: 50px; height: 50px; border: 3px solid var(--edge); border-top-color: var(--bl); border-radius: 50%; animation: spinBorder 1s linear infinite; box-shadow: 0 0 15px rgba(14,165,233,0.4);}
 #ldr-txt { font-size: 14px; font-weight: bold; letter-spacing: 3px; color: var(--bl); text-transform: uppercase; animation: floatText 2s ease-in-out infinite; }
 
-#topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 25px; border-bottom: 1px solid var(--bl2); background: linear-gradient(180deg, var(--ink2), var(--ink)); box-shadow: 0 5px 20px rgba(0,0,0,0.6); z-index: 100; position: relative; height: 70px;}
+#topbar { display: flex; align-items: center; justify-content: space-between; padding: 15px 30px; border-bottom: 2px solid var(--bl2); background: linear-gradient(180deg, var(--ink2), var(--ink)); box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 100; position: relative; height: 85px;}
 
-.brand-wrap { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; padding: 6px 30px; border-radius: 6px; background: var(--ink); box-shadow: 0 10px 25px rgba(0,0,0,0.8), inset 0 0 10px rgba(14,165,233,0.2); overflow: hidden;}
+.brand-wrap { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; padding: 12px 45px; border-radius: 8px; background: var(--ink); box-shadow: 0 15px 35px rgba(0,0,0,0.9), inset 0 0 15px rgba(14,165,233,0.2); overflow: hidden;}
 .brand-wrap::before { content: ''; position: absolute; width: 150%; height: 300%; background: conic-gradient(transparent, transparent, transparent, var(--bl)); animation: spinBorder 3.5s linear infinite; }
-.brand-wrap::after { content: ''; position: absolute; inset: 2px; background: linear-gradient(180deg, var(--ink2), var(--ink)); border-radius: 4px; }
-.brand-text { position: relative; z-index: 1; font-size: 24px; font-weight: 800; letter-spacing: 4px; color: var(--white); text-transform: uppercase; animation: floatText 4s ease-in-out infinite; white-space: nowrap; }
+.brand-wrap::after { content: ''; position: absolute; inset: 3px; background: linear-gradient(180deg, var(--ink2), var(--ink)); border-radius: 6px; }
+.brand-text { position: relative; z-index: 1; font-size: 34px; font-weight: 800; letter-spacing: 6px; color: var(--white); text-transform: uppercase; animation: floatText 4s ease-in-out infinite; white-space: nowrap; }
 .brand-text em { color: var(--bl); font-style: normal; }
 
 .kpi-row { display: flex; gap: 10px; align-items: center; }
-.k { padding: 6px 16px; border: 1px solid var(--edge); border-bottom: 2px solid var(--bl2); border-radius: 6px; text-align: center; background: linear-gradient(145deg, var(--ink3), var(--ink)); cursor: default; transition: .3s; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+.k { padding: 8px 18px; border: 1px solid var(--edge); border-bottom: 2px solid var(--bl2); border-radius: 6px; text-align: center; background: linear-gradient(145deg, var(--ink3), var(--ink)); cursor: default; transition: .3s; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
 .k:hover { border-bottom-color: var(--bl); transform: translateY(-3px); box-shadow: 0 8px 15px rgba(14,165,233,0.3); }
-.k-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
-.k-val { font-size: 20px; font-weight: 700; line-height: 1.2; margin-top: 2px; color: var(--white); text-shadow: 0 0 8px rgba(14,165,233,0.3);}
+.k-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+.k-val { font-size: 22px; font-weight: 700; line-height: 1.2; margin-top: 4px; color: var(--white); text-shadow: 0 0 8px rgba(14,165,233,0.3);}
 .k-red { border-bottom-color: var(--red); animation: glowRed 3s infinite; }
 .k-red .k-val { color: var(--red); text-shadow: 0 0 8px rgba(239,68,68,0.5); }
 
 /* =========================================================
-   4. SLEEK TABS & FILTER BAR
+   4. SLEEK TABS (SPREAD FULL WIDTH) & FILTER BAR
    ========================================================= */
-#navtabs { display: flex; align-items: center; background: var(--ink2); border-bottom: 1px solid var(--edge); overflow-x: auto; flex-shrink: 0; padding: 0 15px;}
-.tab { padding: 14px 18px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: .3s; white-space: nowrap; background: transparent; display: flex; align-items: center; gap: 6px;}
-.tab:hover { color: var(--white); background: rgba(14,165,233,.05); }
-.tab.active { color: var(--bl); border-bottom-color: var(--bl); background: rgba(14,165,233,.08); }
-.tab-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--edge); }
-.tab.active .tab-dot, .tab:hover .tab-dot { background: var(--bl); box-shadow: 0 0 6px var(--bl); }
+#navtabs { display: flex; align-items: flex-end; background: var(--ink2); border-bottom: 1px solid var(--bl); overflow-x: auto; flex-shrink: 0; padding: 12px 25px 0 25px; gap: 15px; width: 100%;}
+.tab { flex: 1; padding: 16px 10px; font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); cursor: pointer; border: 1px solid var(--edge); border-bottom: none; border-radius: 8px 8px 0 0; transition: .3s; white-space: nowrap; text-align: center; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 8px;}
+.tab:hover { color: var(--white); background: rgba(14,165,233,.1); border-color: rgba(14,165,233,.5); }
+.tab.active { color: var(--bl); background: var(--ink2); border-color: var(--bl); border-bottom: 2px solid var(--ink2); margin-bottom: -1px; z-index: 2; box-shadow: 0 -5px 15px rgba(14,165,233,0.15);}
+.tab-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--edge); }
+.tab.active .tab-dot, .tab:hover .tab-dot { background: var(--bl); box-shadow: 0 0 8px var(--bl); }
 
 #filterbar { padding: 10px 20px; border-bottom: 1px solid var(--edge); display: flex; gap: 12px; align-items: center; justify-content: center; background: linear-gradient(270deg, var(--ink), var(--ink3), var(--ink2), var(--ink)); background-size: 400% 400%; animation: oceanicRolling 15s infinite; flex-wrap: wrap; flex-shrink: 0; box-shadow: inset 0 -5px 15px rgba(0,0,0,0.5);}
 .fb-label { font-size: 11px; font-weight: bold; color: var(--white); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
@@ -637,8 +636,8 @@ function renderCharts(){
   }
 
   if(activeTab==='economy'){
-    const mpiC={'Low (0-1)':0,'Mod (2)':0,'High (3)':0,'Ext (4-5)':0};
-    d.forEach(r=>{if(r.mpi<=1)mpiC['Low (0-1)']++;else if(r.mpi===2)mpiC['Mod (2)']++;else if(r.mpi===3)mpiC['High (3)']++;else mpiC['Ext (4-5)']++;});
+    const mpiC={'Low (0-1)':0,'Mod (2)':0,'High (3)':0,'Extreme (4-5)':0};
+    d.forEach(r=>{if(r.mpi<=1)mpiC['Low (0-1)']++;else if(r.mpi===2)mpiC['Mod (2)']++;else if(r.mpi===3)mpiC['High (3)']++;else mpiC['Extreme (4-5)']++;});
     mkChart('c-mpi2','bar',Object.keys(mpiC),[{data:Object.values(mpiC),backgroundColor:['#10b981','#3b82f6','#f59e0b','#ef4444'],borderRadius:4}],{legend:false});
 
     // Multi-color occupation bar chart
@@ -710,7 +709,7 @@ function openDossier(r){
 
   document.getElementById('d-flood').textContent=`Hazard Level ${r.flood} / 5`;
   document.getElementById('d-wash').textContent=r.wash?'SEVERE: Open Defecation Present':'Adequate Sanitation';
-  document.getElementById('d-hosp').innerHTML=`${r.hosp_name} <br/><span style="color:var(--red);font-size:11px;font-style:italic">— ${r.hosp_dist}km traversing distance</span>`;
+  document.getElementById('d-hosp').innerHTML=`${r.hosp_name} <br/><span style="color:var(--red);font-size:12px;font-style:italic">— ${r.hosp_dist}km traversing distance</span>`;
 
   const mpiEl=document.getElementById('d-mpi');
   if(r.mpi>=4) mpiEl.innerHTML=`<span class="db-val-red">${r.mpi} — EXTREME DEPRIVATION</span>`;
