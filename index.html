@@ -1,766 +1,775 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blue Lagos | Strategic Command Center</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blue Lagos | Executive Intelligence Command</title>
 
-    <style>
-        /* Official Blue Lagos Deep Oceanic Palette */
-        :root {
-            --bl-dark: #020611;       
-            --bl-panel: #061122;      
-            --bl-blue: #0056b3;       
-            --bl-light-blue: #0ea5e9; 
-            --bl-white: #F8FAFC;      
-            --bl-slate: #94a3b8;      
-            --bl-border: #1e293b;     
-            
-            --cat-wash: #0ea5e9;      
-            --cat-infra: #cbd5e1;     
-            --cat-health: #ef4444;    
-            --cat-edu: #f59e0b;       
-        }
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        body { margin: 0; font-family: 'Times New Roman', Times, serif; background-color: var(--bl-dark); color: var(--bl-white); overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
-        
-        @keyframes obliqueFloat {
-            0% { text-shadow: 1px 1px 0px #002244, 2px 2px 0px #003366, 3px 3px 0px #004488, 4px 4px 15px rgba(0,165,233,0.4); transform: translateY(0px); }
-            50% { text-shadow: 2px 2px 0px #002244, 4px 4px 0px #003366, 6px 6px 0px #004488, 10px 10px 25px rgba(0,165,233,0.6); transform: translateY(-3px) scale(1.02); }
-            100% { text-shadow: 1px 1px 0px #002244, 2px 2px 0px #003366, 3px 3px 0px #004488, 4px 4px 15px rgba(0,165,233,0.4); transform: translateY(0px); }
-        }
-        
-        @keyframes oceanicRolling {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
+<style>
+/* =========================================================
+   1. CORE VARIABLES & TIMES NEW ROMAN STANDARDIZATION
+   ========================================================= */
+:root {
+  --ink: #020611; --ink2: #061122; --ink3: #0b1c34;
+  --bl: #0ea5e9; --bl2: #0056b3; 
+  --edge: #1e3a5f; --muted: #8fb0ca; --ghost: #64849e;
+  --white: #ffffff; --cream: #f0f6ff;
+  --red: #ef4444; --amber: #f59e0b; --green: #10b981;
+  /* Reduced panel sizes to INCREASE map size */
+  --panel-w: 280px; 
+  --right-w: 360px;
+  --font-main: 'Times New Roman', Times, serif;
+}
 
-        @keyframes slicerPulse {
-            0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.4); }
-            70% { box-shadow: 0 0 0 8px rgba(14, 165, 233, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
-        }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-main); background: var(--ink); color: var(--white); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        @keyframes slideUpFade {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--ink); }
+::-webkit-scrollbar-thumb { background: var(--edge); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--bl); }
 
-        @keyframes rotateBorder { 
-            0% { transform: rotate(0deg); } 
-            100% { transform: rotate(360deg); } 
-        }
+/* =========================================================
+   2. HIGH-END ANIMATION ENGINE
+   ========================================================= */
+@keyframes spinBorder { to { transform: rotate(360deg); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes glowRed { 0%, 100% { box-shadow: 0 0 8px rgba(239,68,68,.3); } 50% { box-shadow: 0 0 18px rgba(239,68,68,.6); } }
+@keyframes floatText { 0%, 100% { transform: translateY(0); text-shadow: 0 3px 10px rgba(14,165,233,0.3); } 50% { transform: translateY(-2px); text-shadow: 0 6px 18px rgba(14,165,233,0.5); } }
+@keyframes oceanicRolling { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes radarPulse { 0% { transform: scale(.1); opacity: 1; } 100% { transform: scale(3.5); opacity: 0; } }
 
-        /* HEADER & KPIs */
-        #top-bar { 
-            display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; 
-            background: linear-gradient(180deg, #020611 0%, #061122 100%);
-            border-bottom: 2px solid var(--bl-blue); box-shadow: 0 10px 30px rgba(0,0,0,0.8); z-index: 10;
-            position: relative; height: 60px;
-        }
-        
-        .branding-container {
-            position: absolute; left: 50%; transform: translateX(-50%);
-            width: 340px; height: 75px;
-            background: var(--bl-dark); border-radius: 12px;
-            display: flex; justify-content: center; align-items: center;
-            overflow: hidden;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.9), inset 0 0 15px rgba(14,165,233,0.2);
-        }
-        .branding-container::before {
-            content: ''; position: absolute; width: 150%; height: 300%;
-            background: conic-gradient(transparent, transparent, transparent, var(--bl-light-blue));
-            animation: rotateBorder 3.5s linear infinite;
-        }
-        .branding-container::after {
-            content: ''; position: absolute; inset: 3px;
-            background: linear-gradient(180deg, #061122, #020611); border-radius: 9px;
-        }
-        
-        .branding { position: relative; z-index: 1; text-align: center; }
-        .branding h1 { margin: 0; font-size: 36px; color: #fff; font-weight: bold; letter-spacing: 5px; animation: obliqueFloat 4s ease-in-out infinite; text-transform: uppercase;}
-        .branding span { color: var(--bl-light-blue); }
-        
-        #left-kpis, #right-kpis { display: flex; gap: 20px; align-items: center;}
-        
-        .kpi { 
-            text-align: center; padding: 8px 18px; 
-            background: linear-gradient(145deg, #0a1526, #020611);
-            border: 1px solid var(--bl-border);
-            border-bottom: 3px solid var(--bl-blue);
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 1px 3px rgba(255,255,255,0.05);
-            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-            cursor: default;
-        }
-        .kpi:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(14, 165, 233, 0.4), inset 0 1px 3px rgba(255,255,255,0.2);
-            border-bottom-color: var(--bl-light-blue);
-        }
-        
-        .kpi-title { font-size: 11px; color: var(--bl-slate); text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold;}
-        .kpi-value { font-size: 24px; font-weight: bold; color: var(--bl-white); margin-top: 3px; text-shadow: 0 0 10px rgba(14, 165, 233, 0.3);}
+/* =========================================================
+   3. BOOT LOADER & TOP NAVIGATION
+   ========================================================= */
+#loader { position: fixed; inset: 0; background: var(--ink); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; }
+.spin-ring { width: 50px; height: 50px; border: 3px solid var(--edge); border-top-color: var(--bl); border-radius: 50%; animation: spinBorder 1s linear infinite; box-shadow: 0 0 15px rgba(14,165,233,0.4);}
+#ldr-txt { font-size: 14px; font-weight: bold; letter-spacing: 3px; color: var(--bl); text-transform: uppercase; animation: floatText 2s ease-in-out infinite; }
 
-        /* FILTER BAR */
-        #filter-bar { 
-            display: flex; gap: 20px; padding: 12px 30px; 
-            background: linear-gradient(270deg, #020611, #002244, #004488, #002244, #020611);
-            background-size: 400% 400%;
-            animation: oceanicRolling 15s ease-in-out infinite;
-            border-bottom: 1px solid var(--bl-border); align-items: center; 
-            box-shadow: inset 0 -10px 20px rgba(0,0,0,0.5);
-            justify-content: center;
-        }
-        .filter-group { display: flex; align-items: center; gap: 10px; }
-        .filter-group label { font-size: 13px; color: var(--bl-white); font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
-        select { 
-            background-color: rgba(2, 6, 17, 0.8); color: var(--bl-white); border: 1px solid var(--bl-light-blue); 
-            padding: 8px 14px; border-radius: 6px; font-family: 'Times New Roman', Times, serif; font-size: 15px; font-weight: bold; outline: none; cursor: pointer; 
-            transition: 0.3s; backdrop-filter: blur(8px);
-            animation: slicerPulse 3.5s infinite;
-        }
-        select:hover { border-color: #fff; background-color: rgba(14, 165, 233, 0.3); transform: scale(1.05);}
-        
-        button.reset-btn { 
-            background: linear-gradient(90deg, #0056b3, #0ea5e9); color: #fff; border: none; padding: 9px 20px; 
-            border-radius: 6px; cursor: pointer; font-family: 'Times New Roman', Times, serif; font-size: 14px; font-weight: bold; text-transform: uppercase; 
-            transition: 0.3s; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4); letter-spacing: 1px;
-        }
-        button.reset-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(14, 165, 233, 0.6); }
+#topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 25px; border-bottom: 1px solid var(--bl2); background: linear-gradient(180deg, var(--ink2), var(--ink)); box-shadow: 0 5px 20px rgba(0,0,0,0.6); z-index: 100; position: relative; height: 70px;}
 
-        /* WORKSPACE */
-        #workspace { display: flex; flex: 1; height: calc(100vh - 140px); position: relative; background-color: var(--bl-dark); }
-        
-        #left-panel { width: 300px; background-color: var(--bl-panel); border-right: 1px solid var(--bl-border); display: flex; flex-direction: column; z-index: 1000; box-shadow: 10px 0 30px rgba(0,0,0,0.6);}
-        .panel-header { padding: 18px; font-size: 16px; font-weight: bold; color: var(--bl-white); text-transform: uppercase; border-bottom: 1px solid var(--bl-border); letter-spacing: 2px; background-color: #040d1a;}
-        #roster { flex: 1; overflow-y: auto; margin: 0; padding: 0; list-style: none; }
-        .roster-item { padding: 16px 20px; border-bottom: 1px solid var(--bl-border); cursor: pointer; transition: all 0.3s ease; animation: slideUpFade 0.5s ease-out backwards;}
-        .roster-item:hover { background-color: rgba(14, 165, 233, 0.15); border-left: 5px solid var(--bl-light-blue); padding-left: 25px; }
-        .roster-name { font-weight: bold; font-size: 16px; color: var(--bl-white); margin-bottom: 4px;}
-        .roster-lga { font-size: 13px; color: var(--bl-slate); font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
+.brand-wrap { position: absolute; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; padding: 6px 30px; border-radius: 6px; background: var(--ink); box-shadow: 0 10px 25px rgba(0,0,0,0.8), inset 0 0 10px rgba(14,165,233,0.2); overflow: hidden;}
+.brand-wrap::before { content: ''; position: absolute; width: 150%; height: 300%; background: conic-gradient(transparent, transparent, transparent, var(--bl)); animation: spinBorder 3.5s linear infinite; }
+.brand-wrap::after { content: ''; position: absolute; inset: 2px; background: linear-gradient(180deg, var(--ink2), var(--ink)); border-radius: 4px; }
+.brand-text { position: relative; z-index: 1; font-size: 24px; font-weight: 800; letter-spacing: 4px; color: var(--white); text-transform: uppercase; animation: floatText 4s ease-in-out infinite; white-space: nowrap; }
+.brand-text em { color: var(--bl); font-style: normal; }
 
-        /* MAP WRAPPER & LABELS */
-        #map-wrapper { flex: 1; padding: 15px; display: flex; flex-direction: column; }
-        #map { 
-            flex: 1; background-color: #000; 
-            border-radius: 20px; 
-            overflow: hidden; 
-            box-shadow: 0 10px 40px rgba(0,0,0,0.9), inset 0 0 20px rgba(0,0,0,0.8);
-            border: 1px solid var(--bl-border);
-        }
-        .leaflet-tile-pane { filter: brightness(0.65) contrast(1.4) saturate(0.8) sepia(20%) hue-rotate(190deg); }
-        
-        .leaflet-tooltip.map-label {
-            background: transparent; border: none; box-shadow: none;
-            color: var(--bl-white); font-family: 'Times New Roman', Times, serif;
-            font-weight: bold; font-size: 10px; 
-            text-shadow: 2px 2px 5px #000, -1px -1px 3px #000;
-            text-transform: uppercase; letter-spacing: 1px;
-        }
+.kpi-row { display: flex; gap: 10px; align-items: center; }
+.k { padding: 6px 16px; border: 1px solid var(--edge); border-bottom: 2px solid var(--bl2); border-radius: 6px; text-align: center; background: linear-gradient(145deg, var(--ink3), var(--ink)); cursor: default; transition: .3s; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+.k:hover { border-bottom-color: var(--bl); transform: translateY(-3px); box-shadow: 0 8px 15px rgba(14,165,233,0.3); }
+.k-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: bold; }
+.k-val { font-size: 20px; font-weight: 700; line-height: 1.2; margin-top: 2px; color: var(--white); text-shadow: 0 0 8px rgba(14,165,233,0.3);}
+.k-red { border-bottom-color: var(--red); animation: glowRed 3s infinite; }
+.k-red .k-val { color: var(--red); text-shadow: 0 0 8px rgba(239,68,68,0.5); }
 
-        /* 🌊 FIXED TACTICAL RADAR & FACILITY LINES 🌊 */
-        .radar-pulse-container {
-            pointer-events: none;
-        }
-        .radar-pulse-inner {
-            width: 100%; height: 100%;
-            border-radius: 50%;
-            border: 2px solid var(--bl-light-blue);
-            background: radial-gradient(circle, rgba(14,165,233,0.4) 0%, rgba(14,165,233,0) 70%);
-            animation: pulseSweep 2.5s infinite cubic-bezier(0.1, 0.5, 0.9, 0.1);
-        }
-        
-        @keyframes pulseSweep {
-            0% { transform: scale(0.1); opacity: 1; }
-            100% { transform: scale(3.5); opacity: 0; }
-        }
+/* =========================================================
+   4. SLEEK TABS & FILTER BAR
+   ========================================================= */
+#navtabs { display: flex; align-items: center; background: var(--ink2); border-bottom: 1px solid var(--edge); overflow-x: auto; flex-shrink: 0; padding: 0 15px;}
+.tab { padding: 14px 18px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: .3s; white-space: nowrap; background: transparent; display: flex; align-items: center; gap: 6px;}
+.tab:hover { color: var(--white); background: rgba(14,165,233,.05); }
+.tab.active { color: var(--bl); border-bottom-color: var(--bl); background: rgba(14,165,233,.08); }
+.tab-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--edge); }
+.tab.active .tab-dot, .tab:hover .tab-dot { background: var(--bl); box-shadow: 0 0 6px var(--bl); }
 
-        .facility-tooltip {
-            background: rgba(2, 6, 17, 0.95);
-            border: 1px solid var(--bl-light-blue);
-            color: #fff;
-            font-family: 'Times New Roman', Times, serif;
-            font-size: 10px;
-            font-weight: bold;
-            padding: 4px 6px;
-            border-radius: 4px;
-            box-shadow: 0 0 10px rgba(14,165,233,0.5);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            text-align: center;
-        }
+#filterbar { padding: 10px 20px; border-bottom: 1px solid var(--edge); display: flex; gap: 12px; align-items: center; justify-content: center; background: linear-gradient(270deg, var(--ink), var(--ink3), var(--ink2), var(--ink)); background-size: 400% 400%; animation: oceanicRolling 15s infinite; flex-wrap: wrap; flex-shrink: 0; box-shadow: inset 0 -5px 15px rgba(0,0,0,0.5);}
+.fb-label { font-size: 11px; font-weight: bold; color: var(--white); text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+select, #search-box { background: var(--ink3); color: #ffffff; border: 1px solid var(--bl); padding: 6px 12px; border-radius: 4px; font-family: var(--font-main); font-size: 13px; font-weight: bold; outline: none; cursor: pointer; transition: .3s; }
+select option { background: var(--ink); color: #ffffff; }
+select:hover, select:focus, #search-box:focus { border-color: var(--white); background: #132a4a; }
+#search-box { min-width: 180px; }
+.reset-btn { margin-left: auto; background: linear-gradient(90deg, var(--bl2), var(--bl)); color: var(--white); border: none; padding: 7px 16px; border-radius: 4px; cursor: pointer; font-family: var(--font-main); font-size: 11px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; transition: .3s; box-shadow: 0 4px 10px rgba(14,165,233,0.3); }
+.reset-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(14,165,233,0.5); }
 
-        /* REDUCED COMMUNITY MAP POPUP */
-        .leaflet-popup-content-wrapper { 
-            background-color: rgba(6, 17, 34, 0.95); 
-            color: #fff; 
-            border-radius: 6px; 
-            border: 1px solid var(--bl-light-blue); 
-            box-shadow: 0 5px 15px rgba(0,0,0,0.8);
-            padding: 0;
-        }
-        .leaflet-popup-content { margin: 8px 12px; line-height: 1.2; }
-        .leaflet-popup-tip { background-color: rgba(6, 17, 34, 0.95); }
-        .min-popup { font-family: 'Times New Roman', Times, serif; text-align: center; padding: 2px;}
-        .min-popup b { color: var(--bl-white); font-size: 13px; display: block; margin-bottom: 4px; text-transform: uppercase; font-weight: bold; letter-spacing: 0.5px;}
-        .cat-badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; text-transform: uppercase; color: #020611; letter-spacing: 1px; font-family: sans-serif;}
+/* =========================================================
+   5. WORKSPACE, ROSTER, AND MAP
+   ========================================================= */
+#workspace { display: flex; flex: 1; min-height: 0; position: relative; }
 
-        /* RIGHT PANE: CHARTS */
-        #right-panel { width: 380px; background-color: var(--bl-panel); border-left: 1px solid var(--bl-border); display: flex; flex-direction: column; z-index: 1000; overflow-y: auto; box-shadow: -10px 0 30px rgba(0,0,0,0.6);}
-        
-        #macro-view { padding: 15px; display: flex; flex-direction: column; gap: 15px; }
-        .chart-container { background: #040d1a; padding: 15px; border-radius: 12px; border: 1px solid rgba(14,165,233,0.2); box-shadow: inset 0 0 15px rgba(0,0,0,0.5); animation: slideUpFade 0.6s ease-out backwards;}
-        .chart-title { font-size: 13px; color: var(--bl-light-blue); text-transform: uppercase; margin-bottom: 10px; text-align: center; font-weight: bold; letter-spacing: 2px;}
-        .chart-wrapper { position: relative; height: 160px; width: 100%; }
+#left-panel { width: var(--panel-w); border-right: 1px solid var(--edge); display: flex; flex-direction: column; background: var(--ink2); flex-shrink: 0; box-shadow: 5px 0 20px rgba(0,0,0,0.5); z-index: 10; }
+.ph { padding: 14px 18px; border-bottom: 1px solid var(--edge); font-size: 13px; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; color: var(--white); display: flex; justify-content: space-between; align-items: center; background: var(--ink3); }
+.ph-count { color: var(--bl); font-size: 14px; }
+#roster { flex: 1; overflow-y: auto; list-style: none; padding: 0; margin: 0; }
+.ri { padding: 12px 18px; border-bottom: 1px solid rgba(30,58,95,.5); cursor: pointer; transition: .2s; animation: fadeUp .4s backwards; }
+.ri:hover { background: rgba(14,165,233,.1); border-left: 4px solid var(--bl); padding-left: 22px; }
+.ri-name { font-size: 14px; font-weight: bold; color: var(--white); margin-bottom: 4px; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+.ri-sub { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.ri-flag { font-size: 10px; color: var(--red); margin-top: 4px; display: none; font-style: italic; font-weight: bold; }
+.cat-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; box-shadow: 0 0 4px rgba(255,255,255,0.3); }
 
-        /* THE EXPANDED MICRO-VIEW DOSSIER */
-        #micro-view { padding: 0; display: none; animation: slideUpFade 0.4s ease-out;}
-        .detail-header { padding: 25px; background: linear-gradient(135deg, #003366 0%, #020611 100%); border-bottom: 1px solid var(--bl-border); position: relative;}
-        #close-btn { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.6); border: 2px solid var(--bl-slate); color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 1; transition: 0.3s; font-family: sans-serif;}
-        #close-btn:hover { background: var(--cat-health); border-color: var(--cat-health); transform: rotate(90deg);}
-        #target-name { font-size: 26px; font-weight: bold; color: #fff; margin-bottom: 8px; line-height: 1.2; text-transform: uppercase; text-shadow: 0 4px 10px rgba(0,0,0,0.5);}
-        #target-lga { font-size: 13px; color: var(--bl-light-blue); font-weight: bold; letter-spacing: 2px; text-transform: uppercase;}
-        
-        .detail-body { padding: 20px; }
-        
-        .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
-        .span-3 { grid-column: span 3; }
-        .info-box { background: #040d1a; padding: 12px; border-radius: 8px; border: 1px solid rgba(14,165,233,0.15); transition: 0.3s; box-shadow: inset 0 2px 10px rgba(0,0,0,0.3);}
-        .info-box:hover { border-color: var(--bl-light-blue); transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.4);}
-        .info-label { font-size: 9px; color: var(--bl-slate); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; font-weight: bold;}
-        .info-value { font-size: 14px; color: #fff; font-weight: bold; word-break: break-word; line-height: 1.3;}
+#map-wrap { flex: 1; padding: 12px; display: flex; flex-direction: column; min-width: 0; position: relative;}
+#map { flex: 1; border-radius: 12px; border: 1px solid var(--edge); overflow: hidden; background: #000; box-shadow: 0 8px 30px rgba(0,0,0,0.8), inset 0 0 15px rgba(0,0,0,0.8); }
+.leaflet-tile-pane { filter: brightness(.65) contrast(1.3) saturate(.7) hue-rotate(195deg); }
 
-        .spatial-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px; }
-        .hosp-text { color: var(--cat-health); }
-        .sch-text { color: var(--cat-edu); }
+/* SINGLE LINE MAP LEGEND */
+.legend { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 15px; padding: 8px 12px; border-top: 1px solid var(--edge); background: var(--ink2); justify-content: flex-start; white-space: nowrap; -webkit-overflow-scrolling: touch; margin-top: 8px; border-radius: 6px;}
+.legend::-webkit-scrollbar { display: none; }
+.lg-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ghost); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+.lg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 4px rgba(255,255,255,0.3); }
 
-        .intel-box { background: linear-gradient(180deg, rgba(14, 165, 233, 0.1) 0%, rgba(2, 6, 17, 0) 100%); border: 1px solid var(--bl-light-blue); border-radius: 12px; padding: 20px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.4);}
-        .intel-badge { position: absolute; top: -12px; left: 20px; background: var(--bl-light-blue); color: #020611; padding: 4px 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; border-radius: 6px; letter-spacing: 1px; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.5);}
-        .intel-text { font-size: 15px; line-height: 1.6; color: var(--bl-white); margin-top: 10px;}
+/* Map Tooltips & Popups */
+.leaflet-tooltip.ml { background: transparent; border: none; box-shadow: none; color: #fff; font-family: var(--font-main); font-weight: bold; font-size: 11px; text-shadow: 2px 2px 4px #000, -1px -1px 2px #000; text-transform: uppercase; letter-spacing: 1px; }
+.leaflet-popup-content-wrapper { background: rgba(6,17,34,.95); color: #fff; border-radius: 6px; border: 1px solid var(--bl); box-shadow: 0 4px 20px rgba(0,0,0,.9); padding: 0; backdrop-filter: blur(4px); font-family: var(--font-main); }
+.leaflet-popup-tip { background: rgba(6,17,34,.95); }
+.leaflet-popup-content { margin: 10px 14px; line-height: 1.3; text-align: center; }
+.mpop b { font-size: 13px; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
+.ttip { background: rgba(2,6,17,.95); border: 1px solid var(--bl); color: #fff; font-family: var(--font-main); font-size: 10px; font-weight: bold; padding: 4px 6px; border-radius: 4px; box-shadow: 0 0 8px rgba(14,165,233,.5); text-transform: uppercase; text-align: center;}
+.radar-wrap { pointer-events: none; }
+.radar-inner { width: 100%; height: 100%; border-radius: 50%; border: 2px solid var(--bl); background: radial-gradient(circle, rgba(14,165,233,.4) 0%, transparent 70%); animation: radarPulse 2.5s infinite; }
 
-        /* 📱 MOBILE RESPONSIVE PATCH */
-        @media screen and (max-width: 850px) {
-            #workspace { flex-direction: column !important; height: auto !important; }
-            #left-panel { width: 100% !important; height: 300px !important; order: 2; }
-            #map-wrapper { width: 100% !important; order: 1; height: 300px !important; }
-            #right-panel { width: 100% !important; order: 3; }
-        }
-    </style>
+/* =========================================================
+   6. RIGHT PANEL: INTELLIGENCE PAGES & CHARTS
+   ========================================================= */
+#right-panel { width: var(--right-w); border-left: 1px solid var(--edge); display: flex; flex-direction: column; background: var(--ink2); flex-shrink: 0; overflow-y: auto; overflow-x: hidden; box-shadow: -5px 0 20px rgba(0,0,0,0.5); z-index: 10; position: relative; }
+
+.page { display: none; padding: 15px; flex-direction: column; gap: 15px; }
+.page.active { display: flex; animation: slideInRight .4s ease-out; }
+
+/* Section Headers & Story Box */
+.sec-hd { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; color: var(--ghost); border-bottom: 1px solid var(--edge); padding-bottom: 6px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.sec-hd span { background: var(--edge); color: var(--white); padding: 2px 6px; border-radius: 4px; font-size: 9px; }
+
+.story-box { background: linear-gradient(135deg, rgba(14,165,233,.08), transparent); border-left: 3px solid var(--bl); padding: 14px; font-size: 13px; line-height: 1.5; color: var(--cream); font-style: italic; border-radius: 0 6px 6px 0; box-shadow: inset 4px 0 10px rgba(0,0,0,0.15); }
+.hl { color: var(--bl); font-weight: 700; font-style: normal; font-size: 14px; }
+.hl-red { color: var(--red); font-weight: 700; font-style: normal; font-size: 14px; text-shadow: 0 0 8px rgba(239,68,68,0.3); }
+.hl-amber { color: var(--amber); font-weight: 700; font-style: normal; font-size: 14px; }
+
+/* Charts & Stat Grids */
+.chart-card { background: var(--ink3); border: 1px solid rgba(30,58,95,.6); border-radius: 8px; padding: 14px; box-shadow: inset 0 0 15px rgba(0,0,0,0.2); transition: .2s;}
+.chart-card:hover { border-color: rgba(14,165,233,0.3); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.cc-title { font-size: 10px; color: var(--bl); text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 10px; text-align: center; font-weight: bold; }
+.cc-wrap { position: relative; height: 160px; width: 100%; }
+
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-card { background: var(--ink3); border: 1px solid rgba(30,58,95,.5); border-radius: 6px; padding: 12px; transition: .2s; position: relative; overflow: hidden; box-shadow: inset 0 2px 8px rgba(0,0,0,0.15);}
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--edge); transition: .2s; }
+.stat-card:hover { border-color: var(--bl); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.3); }
+.stat-card:hover::before { background: var(--bl); }
+
+.sc-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; font-weight: bold;}
+.sc-val { font-size: 16px; font-weight: bold; color: var(--white); }
+.sc-sub { font-size: 10px; color: var(--ghost); margin-top: 3px; font-style: italic; }
+.sc-red { border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.05); }
+.sc-red::before { background: var(--red); }
+.sc-red:hover { border-color: var(--red); box-shadow: 0 6px 15px rgba(239,68,68,0.2);}
+.sc-red .sc-val { color: var(--red); text-shadow: 0 0 8px rgba(239,68,68,0.3);}
+.sc-amber { border-color: rgba(245,158,11,0.25); }
+.sc-amber::before { background: var(--amber); }
+.sc-amber .sc-val { color: var(--amber); }
+.sc-span { grid-column: span 2; }
+
+/* =========================================================
+   7. THE MICRO-DOSSIER
+   ========================================================= */
+#dossier { display: none; position: absolute; top:0; left:0; width: 100%; min-height: 100%; background: var(--ink2); z-index: 50; flex-direction: column; animation: slideInRight 0.3s ease-out; }
+.dos-hdr { padding: 20px 15px; background: linear-gradient(135deg, var(--ink3), var(--ink)); border-bottom: 2px solid var(--bl); position: sticky; top: 0; z-index: 60; box-shadow: 0 6px 15px rgba(0,0,0,0.4); }
+#dos-close { position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,.7); border: 1px solid var(--edge); color: var(--white); width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: .2s; box-shadow: 0 3px 8px rgba(0,0,0,0.4);}
+#dos-close:hover { background: var(--red); border-color: var(--red); transform: rotate(90deg); box-shadow: 0 0 12px rgba(239,68,68,0.5); }
+#dos-name { font-size: 20px; font-weight: 800; text-transform: uppercase; line-height: 1.1; margin-bottom: 6px; text-shadow: 0 3px 8px rgba(0,0,0,0.6); }
+#dos-meta { font-size: 11px; color: var(--bl); letter-spacing: 1.5px; text-transform: uppercase; font-weight: bold; }
+
+.dos-body { padding: 0 15px 20px 15px; display: flex; flex-direction: column; gap: 15px; }
+
+/* Image Placeholder for future Survey123 photos */
+.dos-photo { width: 100%; height: 160px; background: var(--ink3); border: 1px solid var(--edge); border-radius: 6px; background-size: cover; background-position: center; display: none; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); margin-bottom: 5px;}
+
+.priority-box { background: rgba(14,165,233,.06); border: 1px solid rgba(14,165,233,.25); border-radius: 6px; padding: 12px; font-size: 13px; color: var(--bl); font-style: italic; line-height: 1.4; font-weight: bold; box-shadow: inset 0 0 8px rgba(0,0,0,0.15);}
+
+/* =========================================================
+   8. MOBILE RESPONSIVE ENGINE (GITHUB PAGES READY)
+   ========================================================= */
+@media (max-width: 1024px) {
+  body { overflow: auto; height: auto; min-height: 100vh; }
+  #workspace { flex-direction: column; overflow: visible; height: auto; }
+  #map-wrap { height: 55vh; min-height: 400px; flex-shrink: 0; order: 1;}
+  #left-panel { width: 100%; height: 350px; flex-shrink: 0; border-right: none; border-bottom: 1px solid var(--edge); order: 3;}
+  #right-panel { width: 100%; height: auto; min-height: 500px; flex-shrink: 0; border-left: none; overflow: visible; order: 2;}
+  #topbar { flex-direction: column; height: auto; padding: 20px; gap: 20px; justify-content: center; }
+  .brand-wrap { position: relative; left: auto; transform: none; width: 100%; max-width: 350px; }
+  #filterbar { flex-direction: column; align-items: stretch; }
+  .filter-group { display: flex; justify-content: space-between; width: 100%; }
+  #search-box { width: 100%; }
+  .reset-btn { width: 100%; margin: 10px 0 0 0; text-align: center; }
+  #navtabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 10px;}
+}
+</style>
 </head>
 <body>
 
-    <div id="top-bar">
-        <div id="left-kpis">
-            <div class="kpi">
-                <div class="kpi-title">Settlements</div>
-                <div class="kpi-value" id="kpi-settlements">0</div>
-            </div>
-            <div class="kpi">
-                <div class="kpi-title">Households</div>
-                <div class="kpi-value" id="kpi-households">0</div>
-            </div>
-            <div class="kpi">
-                <div class="kpi-title">Est. Population</div>
-                <div class="kpi-value" id="kpi-pop">0</div>
-            </div>
-        </div>
+<div id="loader"><div class="spin-ring"></div><div id="ldr-txt">Initializing Command Matrix...</div></div>
 
-        <div class="branding-container">
-            <div class="branding">
-                <h1>Blue<span>Lagos</span></h1>
-            </div>
-        </div>
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="kpi-row" id="kpi-left">
+    <div class="k"><div class="k-label">Settlements</div><div class="k-val" id="kpi-s">—</div></div>
+    <div class="k"><div class="k-label">Total Population</div><div class="k-val" id="kpi-p">—</div></div>
+  </div>
+  <div class="brand-wrap"><div class="brand-text">Blue<em>Lagos</em></div></div>
+  <div class="kpi-row">
+    <div class="k"><div class="k-label">Voter Base</div><div class="k-val" id="kpi-v">—</div></div>
+    <div class="k k-red"><div class="k-label">Critical Alerts</div><div class="k-val" id="kpi-c">—</div></div>
+  </div>
+</div>
 
-        <div id="right-kpis">
-            <div class="kpi">
-                <div class="kpi-title">Reg. Voters</div>
-                <div class="kpi-value" id="kpi-voters">0</div>
-            </div>
-            <div class="kpi" style="border-bottom-color: var(--cat-health);">
-                <div class="kpi-title">Critical Alerts</div>
-                <div class="kpi-value" id="kpi-critical" style="color: var(--cat-health); text-shadow: 0 0 15px rgba(239, 68, 68, 0.6);">0</div>
-            </div>
-        </div>
+<!-- NAV TABS -->
+<div id="navtabs">
+  <div class="tab active" onclick="switchTab('overview')"><span class="tab-dot"></span>Executive Summary</div>
+  <div class="tab" onclick="switchTab('health')"><span class="tab-dot"></span>Health & WASH</div>
+  <div class="tab" onclick="switchTab('economy')"><span class="tab-dot"></span>Economy Matrix</div>
+  <div class="tab" onclick="switchTab('infra')"><span class="tab-dot"></span>Structural Infra</div>
+  <div class="tab" onclick="switchTab('people')"><span class="tab-dot"></span>Demographics</div>
+</div>
+
+<!-- FILTERBAR -->
+<div id="filterbar">
+  <span class="fb-label">District</span>
+  <select id="f-dist" onchange="handleDistChange()"><option value="ALL">All Districts</option></select>
+  <span class="fb-label">LGA</span>
+  <select id="f-lga" onchange="applyFilters()"><option value="ALL">All LGAs</option></select>
+  <span class="fb-label">Sector</span>
+  <select id="f-cat" onchange="applyFilters()"><option value="ALL">All Sectors</option></select>
+  <span class="fb-label">Crisis Marker</span>
+  <select id="f-crisis" onchange="applyFilters()">
+    <option value="ALL">Standard View</option>
+    <option value="CRITICAL">Code Red Only</option>
+  </select>
+  <input type="text" id="search-box" placeholder="Search settlement or LGA..." oninput="applyFilters()">
+  <button class="reset-btn" onclick="resetAll()">Reset Parameters</button>
+</div>
+
+<!-- WORKSPACE -->
+<div id="workspace">
+  <!-- LEFT: ROSTER -->
+  <div id="left-panel">
+    <div class="ph">Tactical Roster <span class="ph-count" id="r-count">0</span></div>
+    <ul id="roster"></ul>
+  </div>
+
+  <!-- CENTER: MAP -->
+  <div id="map-wrap">
+    <div id="map"></div>
+    <div class="legend" id="map-legend"></div>
+  </div>
+
+  <!-- RIGHT: ANALYTICS PANEL -->
+  <div id="right-panel">
+
+    <!-- PAGE 1: OVERVIEW -->
+    <div class="page active" id="pg-overview">
+      <div class="story-box" id="global-story">Analyzing regional demographics...</div>
+      <div class="sec-hd"><span>01</span> Macro Vulnerability Spread</div>
+      <div class="chart-card"><div class="cc-title">Multidimensional Poverty (MPI) Spread</div><div class="cc-wrap"><canvas id="c-mpi"></canvas></div></div>
+      <div class="chart-card"><div class="cc-title">Intervention Priority by Sector</div><div class="cc-wrap"><canvas id="c-sector"></canvas></div></div>
+      <div class="chart-card"><div class="cc-title">Crisis Exposure by LGA</div><div class="cc-wrap"><canvas id="c-lga"></canvas></div></div>
     </div>
 
-    <div id="filter-bar">
-        <div class="filter-group">
-            <label for="filter-phase">Phase:</label>
-            <select id="filter-phase" onchange="applyFilters()"><option value="ALL">All Phases</option></select>
-        </div>
-        <div class="filter-group">
-            <label for="filter-district">District:</label>
-            <select id="filter-district" onchange="handleDistrictChange()"><option value="ALL">All Districts</option></select>
-        </div>
-        <div class="filter-group">
-            <label for="filter-lga">LGA:</label>
-            <select id="filter-lga" onchange="applyFilters()"><option value="ALL">All LGAs</option></select>
-        </div>
-        <div class="filter-group">
-            <label for="filter-cat">Priority:</label>
-            <select id="filter-cat" onchange="applyFilters()"><option value="ALL">All Priorities</option></select>
-        </div>
-        <button class="reset-btn" onclick="resetFilters()">Reset Global Filters</button>
+    <!-- PAGE 2: HEALTH & WASH -->
+    <div class="page" id="pg-health">
+      <div class="sec-hd"><span>02</span> Public Health Viability</div>
+      <div class="chart-card"><div class="cc-title">Waterborne Pathogen Susceptibility</div><div class="cc-wrap"><canvas id="c-epi"></canvas></div></div>
+      <div class="chart-card"><div class="cc-title">Medical Evacuation Isolation Index</div><div class="cc-wrap"><canvas id="c-strand"></canvas></div></div>
+      <div class="stat-grid">
+        <div class="stat-card sc-red sc-span"><div class="sc-label">Medically Trapped Pregnancies</div><div class="sc-val" id="st-preg">—</div><div class="sc-sub">Zero motorized evacuation route</div></div>
+        <div class="stat-card sc-amber"><div class="sc-label">Severe Sanitation Deficit</div><div class="sc-val" id="st-wash">—</div><div class="sc-sub">Open defecation zones</div></div>
+        <div class="stat-card"><div class="sc-label">High Flood Hazard</div><div class="sc-val" id="st-flood">—</div><div class="sc-sub">Level 4/5 Exposure</div></div>
+      </div>
     </div>
 
-    <div id="workspace">
-        <div id="left-panel">
-            <div class="panel-header">Settlement Roster</div>
-            <ul id="roster"></ul>
-        </div>
-
-        <div id="map-wrapper">
-            <div id="map"></div>
-        </div>
-
-        <div id="right-panel">
-            <div id="macro-view">
-                <div class="chart-container" style="animation-delay: 0.1s;">
-                    <div class="chart-title">Intervention Priority Split</div>
-                    <div class="chart-wrapper"><canvas id="pieChart"></canvas></div>
-                </div>
-                <div class="chart-container" style="animation-delay: 0.2s;">
-                    <div class="chart-title">Geographic Access Route</div>
-                    <div class="chart-wrapper"><canvas id="accessChart"></canvas></div>
-                </div>
-                <div class="chart-container" style="animation-delay: 0.3s;">
-                    <div class="chart-title">Demographics Overview</div>
-                    <div class="chart-wrapper"><canvas id="demographicsChart"></canvas></div>
-                </div>
-            </div>
-
-            <div id="micro-view">
-                <div class="detail-header">
-                    <button id="close-btn" onclick="closeDetails()">×</button>
-                    <div id="target-name">Community Name</div>
-                    <div id="target-lga">LGA • District</div>
-                </div>
-                <div class="detail-body">
-                    <div class="info-grid">
-                        <div class="info-box span-3">
-                            <div class="info-label">Community Head / Ruler</div>
-                            <div class="info-value" id="target-ruler">--</div>
-                        </div>
-                        
-                        <div class="info-box">
-                            <div class="info-label">Households</div>
-                            <div class="info-value" id="target-households-detail">--</div>
-                        </div>
-                        <div class="info-box">
-                            <div class="info-label">Est. Pop</div>
-                            <div class="info-value" id="target-pop">--</div>
-                        </div>
-                        <div class="info-box">
-                            <div class="info-label">Reg. Voters</div>
-                            <div class="info-value" id="target-voters-detail">--</div>
-                        </div>
-
-                        <div class="info-box">
-                            <div class="info-label">Primary Occupation</div>
-                            <div class="info-value" id="target-occ" style="text-transform: capitalize;">--</div>
-                        </div>
-                        <div class="info-box">
-                            <div class="info-label">Access Route</div>
-                            <div class="info-value" id="target-route" style="text-transform: capitalize;">--</div>
-                        </div>
-                        <div class="info-box">
-                            <div class="info-label">Govt Presence</div>
-                            <div class="info-value" id="target-govt" style="text-transform: capitalize;">--</div>
-                        </div>
-
-                        <div class="info-box span-3">
-                            <div class="info-label">Existing Amenities</div>
-                            <div class="info-value" id="target-amenities">--</div>
-                        </div>
-                        <div class="info-box span-3">
-                            <div class="info-label">Stated Priority Need</div>
-                            <div class="info-value" id="target-raw" style="color: var(--bl-light-blue); font-style: italic; font-size: 15px;">--</div>
-                        </div>
-                    </div>
-
-                    <div class="spatial-grid">
-                        <div class="info-box">
-                            <div class="info-label">🏥 Nearest Health Facility</div>
-                            <div class="info-value" id="target-hosp-name">--</div>
-                            <div class="info-label" style="margin-top:8px;">Distance & Type</div>
-                            <div class="info-value hosp-text" id="target-hosp-dist" style="font-size: 12px;">--</div>
-                        </div>
-                        <div class="info-box">
-                            <div class="info-label">🏫 Nearest Education Facility</div>
-                            <div class="info-value" id="target-sch-name">--</div>
-                            <div class="info-label" style="margin-top:8px;">Distance & Category</div>
-                            <div class="info-value sch-text" id="target-sch-dist" style="font-size: 12px;">--</div>
-                        </div>
-                    </div>
-
-                    <div class="intel-box">
-                        <div class="intel-badge">Strategic Intelligence Brief</div>
-                        <div class="intel-text" id="target-ai">Generating intelligence...</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- PAGE 3: ECONOMY -->
+    <div class="page" id="pg-economy">
+      <div class="sec-hd"><span>03</span> Economic Resilience & Poverty</div>
+      <div class="chart-card"><div class="cc-title">MPI Severity Distribution</div><div class="cc-wrap"><canvas id="c-mpi2"></canvas></div></div>
+      <div class="stat-grid">
+        <div class="stat-card sc-red sc-span"><div class="sc-label">Extreme Poverty (MPI 4-5)</div><div class="sc-val" id="st-ext">—</div><div class="sc-sub">Critical multi-deprivation identified</div></div>
+        <div class="stat-card sc-amber"><div class="sc-label">Energy Deprivation</div><div class="sc-val" id="st-nrg">—</div></div>
+        <div class="stat-card"><div class="sc-label">Digital Exclusion</div><div class="sc-val" id="st-dig">—</div></div>
+        <div class="stat-card sc-span"><div class="sc-label">Post-Harvest Logistics Threat</div><div class="sc-val" id="st-hvst">—</div><div class="sc-sub">Economic livelihoods exposed</div></div>
+      </div>
+      <div class="chart-card"><div class="cc-title">Primary Livelihood Base</div><div class="cc-wrap"><canvas id="c-occ"></canvas></div></div>
     </div>
 
-    <script>
-        // --- MAP INITIALIZATION ---
-        const map = L.map('map', { zoomControl: false }).setView([6.5244, 3.3792], 12);
-        L.control.zoom({ position: 'topright' }).addTo(map);
+    <!-- PAGE 4: INFRASTRUCTURE -->
+    <div class="page" id="pg-infra">
+      <div class="sec-hd"><span>04</span> Structural Threat & Access</div>
+      <div class="chart-card"><div class="cc-title">Marine Jetty Accessibility</div><div class="cc-wrap"><canvas id="c-jetty"></canvas></div></div>
+      <div class="stat-grid">
+        <div class="stat-card sc-red"><div class="sc-label">Displacement Threat</div><div class="sc-val" id="st-eros">—</div><div class="sc-sub">Coastal erosion risk</div></div>
+        <div class="stat-card sc-red"><div class="sc-label">Emergency Protocol</div><div class="sc-val" id="st-dis">—</div><div class="sc-sub">Zero evacuation plan</div></div>
+        <div class="stat-card sc-span"><div class="sc-label">Avg. Distance to Nearest Clinic Node</div><div class="sc-val" id="st-hospdist">—</div><div class="sc-sub">km average across active view</div></div>
+      </div>
+      <div class="chart-card"><div class="cc-title">Flood Vulnerability Spread</div><div class="cc-wrap"><canvas id="c-flood"></canvas></div></div>
+    </div>
+
+    <!-- PAGE 5: PEOPLE -->
+    <div class="page" id="pg-people">
+      <div class="sec-hd"><span>05</span> Civic Integration</div>
+      <div class="chart-card"><div class="cc-title">Demographic Split by LGA</div><div class="cc-wrap"><canvas id="c-demo"></canvas></div></div>
+      <div class="stat-grid">
+        <div class="stat-card sc-span"><div class="sc-label">Total Verified Voter Base</div><div class="sc-val" id="st-vote2">—</div></div>
+        <div class="stat-card"><div class="sc-label">Estimated Women</div><div class="sc-val" id="st-women">—</div></div>
+        <div class="stat-card"><div class="sc-label">Estimated Youth</div><div class="sc-val" id="st-youth">—</div></div>
+      </div>
+      <div class="chart-card"><div class="cc-title">Geographic Logistics Route</div><div class="cc-wrap"><canvas id="c-route"></canvas></div></div>
+    </div>
+
+    <!-- THE MICRO-DOSSIER OVERLAY -->
+    <div id="dossier">
+      <div class="dos-hdr">
+        <button id="dos-close" onclick="closeDossier()">×</button>
+        <div id="dos-name">—</div>
+        <div id="dos-meta">—</div>
+      </div>
+      <div class="story-box" id="dos-story" style="margin:15px; border-radius: 0 6px 6px 0;">…</div>
+      
+      <div class="dos-body">
+        <!-- Hidden Photo Container for Future Survey123 Integration -->
+        <div class="dos-photo" id="d-photo"></div>
+
+        <div class="sec-hd"><span>01</span> Demographic Baseline</div>
+        <div class="stat-grid">
+          <div class="stat-card"><div class="sc-label">Households</div><div class="sc-val" id="d-hh">—</div></div>
+          <div class="stat-card"><div class="sc-label">Voters</div><div class="sc-val" id="d-vote">—</div></div>
+          <div class="stat-card"><div class="sc-label">Est. Youth</div><div class="sc-val" id="d-youth">—</div></div>
+          <div class="stat-card"><div class="sc-label">Est. Women</div><div class="sc-val" id="d-women">—</div></div>
+        </div>
+
+        <div class="sec-hd" style="margin-top:20px;"><span>02</span> Public Health Viability</div>
+        <div class="stat-grid">
+          <div class="stat-card sc-span" id="db-epi"><div class="sc-label">Waterborne Pathogen Risk</div><div class="sc-val" id="d-epi">—</div></div>
+          <div class="stat-card sc-span" id="db-strand"><div class="sc-label">Medical Evacuation Status</div><div class="sc-val" id="d-strand">—</div><div class="sc-sub" id="d-preg">—</div></div>
+          <div class="stat-card"><div class="sc-label">Flood Hazard</div><div class="sc-val" id="d-flood">—</div></div>
+          <div class="stat-card"><div class="sc-label">Sanitation</div><div class="sc-val" id="d-wash">—</div></div>
+          <div class="stat-card sc-span"><div class="sc-label">Nearest Clinic Node</div><div class="sc-val" id="d-hosp">—</div></div>
+        </div>
+
+        <div class="sec-hd" style="margin-top:20px;"><span>03</span> Economic Resilience</div>
+        <div class="stat-grid">
+          <div class="stat-card sc-span"><div class="sc-label">Poverty Index (MPI)</div><div class="sc-val" id="d-mpi">—</div><div class="sc-sub">Deprivations out of 5</div></div>
+          <div class="stat-card"><div class="sc-label">Energy Status</div><div class="sc-val" id="d-nrg">—</div></div>
+          <div class="stat-card"><div class="sc-label">Digital Network</div><div class="sc-val" id="d-dig">—</div></div>
+          <div class="stat-card sc-span"><div class="sc-label">Logistics & Harvest Risk</div><div class="sc-val" id="d-hvst">—</div></div>
+          <div class="stat-card sc-span"><div class="sc-label">Primary Livelihood</div><div class="sc-val" id="d-occ" style="text-transform:capitalize;">—</div></div>
+        </div>
+
+        <div class="sec-hd" style="margin-top:20px;"><span>04</span> Structural Threat</div>
+        <div class="stat-grid">
+          <div class="stat-card sc-span" id="db-eros"><div class="sc-label">Coastal Displacement Trajectory</div><div class="sc-val" id="d-eros">—</div></div>
+          <div class="stat-card"><div class="sc-label">Emergency Protocol</div><div class="sc-val" id="d-dis">—</div></div>
+          <div class="stat-card"><div class="sc-label">Jetty Condition</div><div class="sc-val" id="d-jetty">—</div></div>
+        </div>
+
+        <div class="sec-hd" style="margin-top:20px;"><span>05</span> Priority Request</div>
+        <div class="priority-box" id="d-priority">—</div>
+      </div>
+    </div>
+
+  </div><!-- /right-panel -->
+</div><!-- /workspace -->
+
+<script>
+// --- MAP INIT ---
+const map = L.map('map',{zoomControl:false}).setView([6.52,3.38],10);
+L.control.zoom({position:'topright'}).addTo(map);
+L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}',{maxZoom:22,subdomains:['mt0','mt1','mt2','mt3'],attribution:'Blue Lagos'}).addTo(map);
+window.addEventListener('resize',()=>map.invalidateSize());
+
+// --- SUPABASE SETUP ---
+const SURL='https://wwmlcreroanokrmekmpe.supabase.co';
+const SKEY='sb_publishable_JAZpO-Tl4hrqu78JIG4gig_yn5fkRt3';
+const sb=supabase.createClient(SURL,SKEY);
+
+let ALL=[], vis=[], markers=[], radarLayer=null, mapLines=[], charts={};
+let activeTab='overview';
+
+const CAT_COLORS={
+  'Water & Sanitation':'#0ea5e9',
+  'Roads & Infrastructure':'#94a3b8',
+  'Healthcare':'#ef4444',
+  'Education':'#f59e0b',
+  'Civic Support':'#8b5cf6'
+};
+const CAT_KEYS=Object.keys(CAT_COLORS);
+const CHART_PALETTE = ['#0ea5e9','#f59e0b','#10b981','#ef4444','#8b5cf6','#38bdf8']; // Dynamic bar colors
+
+function catOf(t){
+  t=(t||'').toLowerCase();
+  if(/water|borehole|drain|toilet|sanit/.test(t)) return 'Water & Sanitation';
+  if(/road|bridge|transformer|light|solar/.test(t)) return 'Roads & Infrastructure';
+  if(/hospital|health|clinic|drug|medi/.test(t)) return 'Healthcare';
+  if(/school|educat|teacher/.test(t)) return 'Education';
+  return 'Civic Support';
+}
+
+async function boot(){
+  try{
+    const {data,error}=await sb.from('blue_lagos_dashboard_kpis').select('*');
+    if(error||!data) throw new Error('DB fail');
+    
+    // Rigorous Data Extraction (15+ KPIs & Logic Fixes)
+    ALL=data.map(r=>{
+      const lat=parseFloat(r.latitude||r.pulled_lat||r.lat||r.y);
+      const lon=parseFloat(r.longitude||r.pulled_lon||r.lon||r.x);
+      const proj=r.priority_needed_amenities||'Undetermined';
+      const cat=catOf(proj);
+      return{
+        ...r, lat, lon,
+        name:r.community_name||r.final_name||'Unnamed',
+        district:r.senatorial_district||r.pulled_senatorial_district||'Unknown',
+        lga:(r.lga||r.localgovt||r.pulled_lga||'Unknown').toUpperCase().replace(/_/g,' '),
+        pop:parseInt(r.estimated_population||r.est_population)||0,
+        hh:parseInt(r.household_estimated_population||r.household)||0,
+        voters:parseInt(r.estimated_registered_voters||r.reg_voters)||0,
+        women:parseInt(r.estimated_number_of_women||r.est_women)||0,
+        youth:parseInt(r.estimated_number_of_youth||r.est_youth)||0,
+        route:r.primary_visit_route||r.access_route||'Water',
+        occ:r.primary_occupation||r.primary_occup||'Unknown',
+        proj, cat, color:CAT_COLORS[cat],
+        hosp_name:r.nearest_hospital_name||'N/A',
+        hosp_dist:r.dist_to_hospital_km?parseFloat(r.dist_to_hospital_km).toFixed(1):'N/A',
         
-        L.tileLayer('http://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
-            maxZoom: 22, 
-            subdomains:['mt0','mt1','mt2','mt3'],
-            attribution: '&copy; Google Maps'
-        }).addTo(map);
+        epi:r.cholera_outbreak_risk||'MODERATE',
+        strand:r.healthcare_stranding_status||'VULNERABLE',
+        mpi:r.multi_dimensional_poverty_index!==undefined?parseInt(r.multi_dimensional_poverty_index):0,
+        erosion:r.erosion_displacement_threat||'STABLE',
+        pregnant:parseInt(r.trapped_pregnant_women||r.est_pregnant)||0,
+        digital:r.digital_exclusion_status||'CONNECTED',
+        harvest:r.post_harvest_loss_risk||'MANAGEABLE',
+        energy:r.energy_poverty_status||'STABLE',
+        flood:r.flood_health_hazard_score!==undefined?parseInt(r.flood_health_hazard_score):0,
+        wash:r.raw_sanitation_deficit===true||r.raw_sanitation_deficit==='t',
+        disaster:r.disaster_preparedness_void===true||r.disaster_preparedness_void==='t',
+        jetty:r.landing_jetty_condition||r.jetty_infrastructure_gap||'Data Unavailable',
+        photo_url: r.survey_image_url || null // Future placeholder logic
+      };
+    }).filter(r=>!isNaN(r.lat)&&!isNaN(r.lon));
 
-        // Fix Map Resize for Mobile
-        window.addEventListener("resize", () => { map.invalidateSize(); });
+    document.getElementById('loader').style.display='none';
+    buildFilters();
+    applyFilters();
+  }catch(e){
+    console.error(e);
+    document.getElementById('ldr-txt').innerHTML='<span style="color:#ef4444">CONNECTION FAILED</span>';
+  }
+}
 
-        // --- DATABASE CONNECTION ---
-        const SUPABASE_URL = 'https://wwmlcreroanokrmekmpe.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_JAZpO-Tl4hrqu78JIG4gig_yn5fkRt3'; 
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// --- FILTERS ---
+function buildFilters(){
+  const ds=document.getElementById('f-dist');
+  [...new Set(ALL.map(d=>d.district))].filter(Boolean).sort().forEach(v=>ds.add(new Option(v,v)));
+  CAT_KEYS.forEach(k=>document.getElementById('f-cat').add(new Option(k,k)));
+  handleDistChange();
+}
+function handleDistChange(){
+  const d=document.getElementById('f-dist').value;
+  const ls=document.getElementById('f-lga');
+  ls.innerHTML='<option value="ALL">All LGAs</option>';
+  let src=d==='ALL'?ALL:ALL.filter(x=>x.district===d);
+  [...new Set(src.map(x=>x.lga))].filter(Boolean).sort().forEach(v=>ls.add(new Option(v,v)));
+  applyFilters();
+}
+function applyFilters(){
+  closeDossier();
+  const d=document.getElementById('f-dist').value;
+  const l=document.getElementById('f-lga').value;
+  const c=document.getElementById('f-cat').value;
+  const cr=document.getElementById('f-crisis').value;
+  const q=(document.getElementById('search-box').value||'').toLowerCase();
+  
+  vis=ALL.filter(r=>{
+    if(d!=='ALL'&&r.district!==d) return false;
+    if(l!=='ALL'&&r.lga!==l) return false;
+    if(c!=='ALL'&&r.cat!==c) return false;
+    if(cr==='CRITICAL'&&r.epi!=='CRITICAL'&&r.strand!=='HIGHLY_STRANDED'&&r.mpi<4) return false;
+    // Search text logic
+    if(q&&!r.name.toLowerCase().includes(q)&&!r.lga.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  renderAll();
+}
+function resetAll(){
+  document.getElementById('f-dist').value='ALL';
+  document.getElementById('f-cat').value='ALL';
+  document.getElementById('f-crisis').value='ALL';
+  document.getElementById('search-box').value='';
+  handleDistChange();
+}
 
-        let masterData = [];
-        let markers = [];
-        let pieChartInstance, accessChartInstance, demoChartInstance = null;
-        
-        let activeRadar = null;
-        let activeLines = [];
+// --- MASTER RENDERER ---
+function renderAll(){
+  updateKPIs();
+  renderGlobalStory();
+  renderMap();
+  renderRoster();
+  renderCharts();
+  buildLegend();
+}
 
-        const catColors = {
-            "WASH (Water & Sanitation)": "#0ea5e9", 
-            "Infrastructure & Roads": "#cbd5e1",    
-            "Healthcare Intervention": "#ef4444",   
-            "Educational Development": "#f59e0b",   
-            "General Civic Support": "#6366f1"      
-        };
+function updateKPIs(){
+  const d=vis;
+  document.getElementById('kpi-s').textContent=d.length.toLocaleString();
+  document.getElementById('kpi-p').textContent=fmt(d.reduce((s,r)=>s+r.pop,0));
+  document.getElementById('kpi-v').textContent=fmt(d.reduce((s,r)=>s+r.voters,0));
+  const cr=d.filter(r=>r.epi==='CRITICAL'||r.strand==='HIGHLY_STRANDED').length;
+  document.getElementById('kpi-c').textContent=cr.toLocaleString();
+}
+function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return n.toLocaleString();}
 
-        function categorizeProject(text) {
-            text = (text || "").toLowerCase();
-            if(text.includes('water') || text.includes('borehole') || text.includes('drain')) return "WASH (Water & Sanitation)";
-            if(text.includes('road') || text.includes('bridge') || text.includes('transformer')) return "Infrastructure & Roads";
-            if(text.includes('hospital') || text.includes('health') || text.includes('clinic')) return "Healthcare Intervention";
-            if(text.includes('school') || text.includes('education')) return "Educational Development";
-            return "General Civic Support";
-        }
+// --- GLOBAL STORY ENGINE ---
+function renderGlobalStory(){
+  if(vis.length===0){ document.getElementById('global-story').innerHTML="No intelligence available for current parameters."; return; }
+  const pop = vis.reduce((s, r) => s + r.pop, 0);
+  const crit = vis.filter(r => r.epi==='CRITICAL' || r.strand==='HIGHLY_STRANDED');
+  const pct = ((crit.length/vis.length)*100).toFixed(1);
+  
+  let s = `Currently analyzing <span class="hl">${vis.length}</span> active zones, encompassing <span class="hl">${pop.toLocaleString()}</span> vulnerable lives. `;
+  if(crit.length > 0) s += `Intelligence frameworks detect a <span class="hl-red">${pct}%</span> critical vulnerability threshold (Code Red Medevac or Pathogen Risk). `;
+  else s += `Structural baseline metrics are currently holding within stable operational thresholds. `;
+  
+  const sc=agg(vis,'cat'); const topC=Object.keys(sc).sort((a,b)=>sc[b]-sc[a])[0];
+  s += `The predominant socio-economic requirement is <span class="hl-amber">${topC}</span> intervention.`;
+  document.getElementById('global-story').innerHTML = s;
+}
 
-        function formatAdminString(str) {
-            if (!str || str === "null") return "Unknown";
-            return str.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-        }
+function renderMap(){
+  markers.forEach(m=>map.removeLayer(m));
+  markers=[];
+  const bnds=[];
+  vis.forEach(r=>{
+    bnds.push([r.lat,r.lon]);
+    const crit=r.epi==='CRITICAL'||r.strand==='HIGHLY_STRANDED'||r.mpi>=4;
+    const m=L.circleMarker([r.lat,r.lon],{radius:crit?9:6,fillColor:r.color,color:crit?'#ef4444':'rgba(255,255,255,.6)',weight:crit?2:1,fillOpacity:.92}).addTo(map);
+    m.bindTooltip(`<div class="mpop"><b>${r.name}</b>${r.cat}</div>`,{direction:'right',className:'ml',offset:[5,0]});
+    m.on('click',()=>openDossier(r));
+    markers.push(m);
+  });
+  if(bnds.length>0) map.fitBounds(bnds,{padding:[30,30],maxZoom:13});
+}
 
-        async function initApp() {
-            const { data, error } = await supabaseClient.from('blue_lagos_survey_raw').select('*');
-            if (error) { console.error(error); return; }
+function renderRoster(){
+  const ul=document.getElementById('roster');
+  ul.innerHTML='';
+  document.getElementById('r-count').textContent=`(${vis.length})`;
+  vis.forEach((r,i)=>{
+    const li=document.createElement('li');
+    li.className='ri'; li.style.animationDelay=`${i*.03}s`;
+    const crit=r.epi==='CRITICAL'||r.strand==='HIGHLY_STRANDED'||r.mpi>=4;
+    li.innerHTML=`<div class="ri-name"><span class="cat-dot" style="background:${r.color}"></span>${r.name}</div><div class="ri-sub">${r.lga} • ${r.cat}</div>${crit?`<div class="ri-flag" style="display:block">⚠️ Critical Alert Active</div>`:''}`;
+    li.addEventListener('click',()=>openDossier(r));
+    ul.appendChild(li);
+  });
+}
 
-            masterData = data.map(row => {
-                let lat = parseFloat(row.pulled_lat || row.y || row.lat);
-                let lon = parseFloat(row.pulled_lon || row.x || row.lon);
-                
-                let routeText = (row.primary_visit_route || "").toLowerCase();
-                let accessRoute = "Mixed / Land & Water";
-                if (routeText.includes("water") || routeText.includes("boat") || routeText.includes("canoe")) {
-                    accessRoute = (routeText.includes("road") || routeText.includes("land")) ? "Mixed / Land & Water" : "Water Access Only";
-                } else if (routeText.includes("road") || routeText.includes("land") || routeText.includes("car")) {
-                    accessRoute = "Land Access Only";
-                }
+function buildLegend(){
+  const el=document.getElementById('map-legend');
+  el.innerHTML=CAT_KEYS.map(k=>`<div class="lg-item"><div class="lg-dot" style="background:${CAT_COLORS[k]}"></div>${k}</div>`).join('');
+}
 
-                let priorityProject = row.priority_needed_amenities || "No specific priority recorded";
-                let category = categorizeProject(priorityProject);
+// --- TABS & CHARTS ---
+function switchTab(id){
+  activeTab=id;
+  document.querySelectorAll('.tab').forEach((t,i)=>{
+    const ids=['overview','health','economy','infra','people'];
+    t.classList.toggle('active',ids[i]===id);
+  });
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const pg=document.getElementById('pg-'+id);
+  if(pg) pg.classList.add('active');
+  renderCharts();
+}
 
-                return {
-                    ...row,
-                    clean_lat: lat,
-                    clean_lon: lon,
-                    clean_lga: formatAdminString(row.localgovt || row.pulled_lga),
-                    clean_district: row.senatorial_district || row.pulled_senatorial_district || "Unknown District",
-                    hosp_name: row.nearest_hospital_name || "None in Range",
-                    hosp_dist: row.dist_to_hospital_km !== null ? parseFloat(row.dist_to_hospital_km).toFixed(2) : null,
-                    hosp_type: row.nearest_hospital_type || "N/A",
-                    sch_name: row.nearest_school_name || "None in Range",
-                    sch_dist: row.dist_to_school_km !== null ? parseFloat(row.dist_to_school_km).toFixed(2) : null,
-                    sch_type: row.nearest_school_type || "N/A",
-                    clean_phase: row.select_phase || "Community Data", 
-                    clean_pop: parseInt(row.estimated_population) || 0,
-                    clean_households: parseInt(row.household_estimated_population) || 0, 
-                    clean_voters: parseInt(row.estimated_registered_voters) || 0,
-                    clean_women: parseInt(row.estimated_number_of_women) || 0,
-                    clean_youth: parseInt(row.estimated_number_of_youth) || 0,
-                    clean_name: row.final_name || 'Unnamed Settlement',
-                    clean_ruler: `${row.community_ruler_title || ""} ${row.input_the_full_name_of_the_community_head || ""}`.trim() || 'Data Unavailable',
-                    clean_project: priorityProject,
-                    clean_occ: row.primary_occupation || "Data Unavailable",
-                    clean_route: accessRoute,
-                    clean_govt: row.state_of_past_govt_presence || "Unknown",
-                    clean_amenities: row.existing_amenities || "None recorded",
-                    ai_category: category,
-                    color: catColors[category]
-                };
-            }).filter(row => !isNaN(row.clean_lat) && !isNaN(row.clean_lon));
+function mkChart(id,type,labels,datasets,opts={}){
+  if(charts[id]) charts[id].destroy();
+  const ctx=document.getElementById(id);
+  if(!ctx) return;
+  const legendOpts = opts.legendOpts || {labels:{color:'#8fb0ca',font:{size:11,family:"'Times New Roman', serif"},boxWidth:10}};
+  const plugins = {
+    legend: Object.assign({display: opts.legend !== false}, legendOpts),
+    tooltip: { backgroundColor:'rgba(2,6,17,.95)', borderColor:'#0ea5e9', borderWidth:1, titleColor:'#f0f6ff', bodyColor:'#8fb0ca', titleFont:{size:12, family:"'Times New Roman', serif"}, bodyFont:{size:11, family:"'Times New Roman', serif"} }
+  };
+  const options = {
+    responsive:true, maintainAspectRatio:false, animation:{duration:2000,easing:'easeOutQuart'}, plugins
+  };
+  if(opts.scales !== false){
+    options.scales = {
+      x: Object.assign({ ticks:{color:'#64849e',font:{size:11,family:"'Times New Roman', serif"}}, grid:{color:'rgba(255,255,255,.03)'} }, opts.xs || {}),
+      y: Object.assign({ ticks:{color:'#64849e',font:{size:11,family:"'Times New Roman', serif"}}, grid:{color:'rgba(255,255,255,.04)'}, beginAtZero:true }, opts.ys || {})
+    };
+  }
+  charts[id]=new Chart(ctx,{type,data:{labels,datasets},options});
+}
 
-            populateFilterDropdowns();
-            renderDashboard(masterData);
-        }
+function agg(arr,key){const o={};arr.forEach(r=>{const v=r[key]||'Unknown';o[v]=(o[v]||0)+1;});return o;}
 
-        function populateFilterDropdowns() {
-            let project_phases = ["Phase 1", "Phase 2", "Phase 3", "Community Data"];
-            masterData.forEach(d => { if(!project_phases.includes(d.clean_phase) && d.clean_phase) project_phases.push(d.clean_phase); });
-            project_phases.sort();
+function renderCharts(){
+  const d=vis;
+  const g=c=>`rgba(${parseInt(c.slice(1,3),16)},${parseInt(c.slice(3,5),16)},${parseInt(c.slice(5,7),16)},.75)`;
 
-            const districts = [...new Set(masterData.map(d => d.clean_district))].filter(Boolean).sort();
-            const cats = [...new Set(masterData.map(d => d.ai_category))].filter(Boolean).sort();
+  if(activeTab==='overview'){
+    const mpiC={'Low (0-1)':0,'Mod (2)':0,'High (3)':0,'Ext (4-5)':0};
+    d.forEach(r=>{if(r.mpi<=1)mpiC['Low (0-1)']++;else if(r.mpi===2)mpiC['Mod (2)']++;else if(r.mpi===3)mpiC['High (3)']++;else mpiC['Ext (4-5)']++;});
+    mkChart('c-mpi','bar',Object.keys(mpiC),[{data:Object.values(mpiC),backgroundColor:['#10b981','#f59e0b','#f97316','#ef4444'],borderRadius:4}],{legend:false});
 
-            const pSelect = document.getElementById('filter-phase');
-            const dSelect = document.getElementById('filter-district');
-            const cSelect = document.getElementById('filter-cat');
+    const sc=agg(d,'cat');
+    mkChart('c-sector','doughnut',Object.keys(sc),[{data:Object.values(sc),backgroundColor:CAT_KEYS.map(k=>g(CAT_COLORS[k])),borderColor:'#061122',borderWidth:2,hoverOffset:6}],{scales:false,legendOpts:{position:'right'}});
 
-            project_phases.forEach(p => pSelect.add(new Option(p, p)));
-            districts.forEach(d => dSelect.add(new Option(d, d)));
-            cats.forEach(c => cSelect.add(new Option(c, c)));
-            
-            updateLgaDropdown("ALL");
-        }
+    const lgas=[...new Set(d.map(r=>r.lga))].slice(0,5);
+    mkChart('c-lga','bar',lgas,[
+      {label:'Code Red',data:lgas.map(l=>d.filter(r=>r.lga===l&&(r.epi==='CRITICAL'||r.strand==='HIGHLY_STRANDED')).length),backgroundColor:'#ef4444',borderRadius:3},
+      {label:'At Risk',data:lgas.map(l=>d.filter(r=>r.lga===l&&r.mpi>=3).length),backgroundColor:'#f59e0b',borderRadius:3}
+    ],{legendOpts:{position:'top'}});
+  }
 
-        function updateLgaDropdown(selectedDistrict) {
-            const lSelect = document.getElementById('filter-lga');
-            lSelect.innerHTML = '<option value="ALL">All LGAs</option>'; 
-            
-            let lgas = [];
-            if (selectedDistrict === "ALL") {
-                lgas = [...new Set(masterData.map(d => d.clean_lga))].filter(Boolean).sort();
-            } else {
-                lgas = [...new Set(masterData.filter(d => d.clean_district === selectedDistrict).map(d => d.clean_lga))].filter(Boolean).sort();
-            }
-            
-            lgas.forEach(l => lSelect.add(new Option(l, l)));
-        }
+  if(activeTab==='health'){
+    const ea=agg(d,'epi');
+    mkChart('c-epi','doughnut',Object.keys(ea),[{data:Object.values(ea),backgroundColor:['#ef4444','#f59e0b','#0ea5e9','#10b981'],borderColor:'#061122',borderWidth:2}],{scales:false,legendOpts:{position:'right'}});
+    const sa=agg(d,'strand');
+    mkChart('c-strand','polarArea',Object.keys(sa),[{data:Object.values(sa),backgroundColor:['rgba(239,68,68,.7)','rgba(245,158,11,.7)','rgba(14,165,233,.7)'],borderColor:'#040d1a',borderWidth:2}],{scales:false,legendOpts:{position:'right'}});
+    
+    document.getElementById('st-preg').textContent=d.reduce((s,r)=>s+r.pregnant,0).toLocaleString();
+    document.getElementById('st-wash').textContent=d.filter(r=>r.wash).length;
+    document.getElementById('st-flood').textContent=d.filter(r=>r.flood>=4).length;
+  }
 
-        function handleDistrictChange() {
-            const dVal = document.getElementById('filter-district').value;
-            updateLgaDropdown(dVal); 
-            applyFilters();
-        }
+  if(activeTab==='economy'){
+    const mpiC={'Low (0-1)':0,'Mod (2)':0,'High (3)':0,'Ext (4-5)':0};
+    d.forEach(r=>{if(r.mpi<=1)mpiC['Low (0-1)']++;else if(r.mpi===2)mpiC['Mod (2)']++;else if(r.mpi===3)mpiC['High (3)']++;else mpiC['Ext (4-5)']++;});
+    mkChart('c-mpi2','bar',Object.keys(mpiC),[{data:Object.values(mpiC),backgroundColor:['#10b981','#3b82f6','#f59e0b','#ef4444'],borderRadius:4}],{legend:false});
 
-        function applyFilters() {
-            closeDetails();
-            const pVal = document.getElementById('filter-phase').value;
-            const dVal = document.getElementById('filter-district').value;
-            const lVal = document.getElementById('filter-lga').value;
-            const cVal = document.getElementById('filter-cat').value;
+    // Multi-color occupation bar chart
+    const oa=agg(d,'occ'); const ok=Object.keys(oa).slice(0,5); const ov=ok.map(k=>oa[k]);
+    mkChart('c-occ','bar',ok,[{data:ov,backgroundColor:CHART_PALETTE,borderRadius:3}],{legend:false,xs:{ticks:{maxRotation:20}}});
 
-            let filtered = masterData;
-            if (pVal !== "ALL") filtered = filtered.filter(d => d.clean_phase === pVal);
-            if (dVal !== "ALL") filtered = filtered.filter(d => d.clean_district === dVal);
-            if (lVal !== "ALL") filtered = filtered.filter(d => d.clean_lga === lVal);
-            if (cVal !== "ALL") filtered = filtered.filter(d => d.ai_category === cVal);
+    document.getElementById('st-ext').textContent=d.filter(r=>r.mpi>=4).length;
+    document.getElementById('st-nrg').textContent=d.filter(r=>r.energy&&r.energy!=='STABLE').length;
+    document.getElementById('st-dig').textContent=d.filter(r=>r.digital&&r.digital!=='CONNECTED').length;
+    document.getElementById('st-hvst').textContent=d.filter(r=>r.harvest&&r.harvest!=='MANAGEABLE').length;
+  }
 
-            renderDashboard(filtered);
-        }
+  if(activeTab==='infra'){
+    const ja=agg(d,'jetty');
+    mkChart('c-jetty','doughnut',Object.keys(ja),[{data:Object.values(ja),backgroundColor:['#ef4444','#f59e0b','#10b981','#0ea5e9'],borderColor:'#061122',borderWidth:2}],{scales:false,legendOpts:{position:'right'}});
 
-        function resetFilters() {
-            document.getElementById('filter-phase').value = "ALL";
-            document.getElementById('filter-district').value = "ALL";
-            document.getElementById('filter-cat').value = "ALL";
-            updateLgaDropdown("ALL"); 
-            document.getElementById('filter-lga').value = "ALL";
-            applyFilters();
-        }
+    const floodBkts={1:0,2:0,3:0,4:0,5:0}; d.forEach(r=>{if(r.flood>=1&&r.flood<=5) floodBkts[r.flood]++;});
+    mkChart('c-flood','bar',['Lvl 1','Lvl 2','Lvl 3','Lvl 4','Lvl 5'],[{data:Object.values(floodBkts),backgroundColor:['#10b981','#84cc16','#f59e0b','#f97316','#ef4444'],borderRadius:4}],{legend:false});
 
-        function renderDashboard(data) {
-            markers.forEach(m => map.removeLayer(m));
-            markers = [];
-            const rosterList = document.getElementById('roster');
-            rosterList.innerHTML = '';
+    document.getElementById('st-eros').textContent=d.filter(r=>r.erosion==='CRITICAL_DISPLACEMENT').length;
+    document.getElementById('st-dis').textContent=d.filter(r=>r.disaster).length;
+    const dists=d.map(r=>parseFloat(r.hosp_dist)).filter(n=>!isNaN(n));
+    document.getElementById('st-hospdist').textContent=dists.length?(dists.reduce((a,b)=>a+b,0)/dists.length).toFixed(1)+' km':'N/A';
+  }
 
-            let totalPop = 0;
-            let totalVoters = 0;
-            let totalHouseholds = 0;
-            let criticalCount = 0;
+  if(activeTab==='people'){
+    const lgas=[...new Set(d.map(r=>r.lga))].slice(0,5);
+    mkChart('c-demo','bar',lgas,[
+      {label:'Women',data:lgas.map(l=>d.filter(r=>r.lga===l).reduce((s,r)=>s+r.women,0)),backgroundColor:'rgba(236,72,153,.7)',borderRadius:3},
+      {label:'Youth',data:lgas.map(l=>d.filter(r=>r.lga===l).reduce((s,r)=>s+r.youth,0)),backgroundColor:'rgba(14,165,233,.7)',borderRadius:3}
+    ],{legendOpts:{position:'top'}});
 
-            data.forEach((row, index) => {
-                totalPop += row.clean_pop;
-                totalVoters += row.clean_voters;
-                totalHouseholds += row.clean_households;
-                
-                let isCrit = row.clean_project.toLowerCase().includes('urgent') || row.clean_project.toLowerCase().includes('critical') || row.ai_category === "Healthcare Intervention";
-                if (isCrit) criticalCount++;
+    const ra=agg(d,'route');
+    mkChart('c-route','doughnut',Object.keys(ra),[{data:Object.values(ra),backgroundColor:['#0ea5e9','#94a3b8','#8b5cf6','#f59e0b','#10b981'],borderColor:'#061122',borderWidth:2}],{scales:false,legendOpts:{position:'right'}});
 
-                let marker = L.circleMarker([row.clean_lat, row.clean_lon], {
-                    radius: 8, fillColor: row.color, color: '#fff', weight: 2, fillOpacity: 0.95
-                }).bindTooltip(row.clean_name, {
-                    permanent: true, direction: 'right', className: 'map-label', offset: [5, 0]
-                }).bindPopup(`
-                    <div class="min-popup">
-                        <b>${row.clean_name}</b>
-                        <div class="cat-badge" style="background-color: ${row.color};">${row.ai_category}</div>
-                    </div>
-                `).addTo(map);
-                
-                markers.push(marker);
+    document.getElementById('st-vote2').textContent=d.reduce((s,r)=>s+r.voters,0).toLocaleString();
+    document.getElementById('st-women').textContent=fmt(d.reduce((s,r)=>s+r.women,0));
+    document.getElementById('st-youth').textContent=fmt(d.reduce((s,r)=>s+r.youth,0));
+  }
+}
 
-                let li = document.createElement('li');
-                li.className = 'roster-item';
-                li.style.animationDelay = `${index * 0.05}s`;
-                li.innerHTML = `
-                    <div class="roster-name">${row.clean_name}</div>
-                    <div class="roster-lga" style="color: ${row.color};">${row.ai_category}</div>
-                `;
-                
-                const triggerDeepDive = () => {
-                    if (activeRadar) map.removeLayer(activeRadar);
-                    activeLines.forEach(layer => map.removeLayer(layer));
-                    activeLines = [];
+// --- DOSSIER & MICRO STORY ENGINE ---
+function openDossier(r){
+  if(radarLayer) map.removeLayer(radarLayer);
+  mapLines.forEach(l=>map.removeLayer(l)); mapLines=[];
 
-                    map.flyTo([row.clean_lat, row.clean_lon], 14, { animate: true, duration: 2, easeLinearity: 0.25 });
-                    marker.openPopup();
-                    openCommunityDetails(row, isCrit);
+  map.flyTo([r.lat,r.lon],14,{duration:1.5});
 
-                    let radarIcon = L.divIcon({ 
-                        html: '<div class="radar-pulse-inner"></div>',
-                        className: 'radar-pulse-container', 
-                        iconSize: [100, 100], 
-                        iconAnchor: [50, 50] 
-                    });
-                    activeRadar = L.marker([row.clean_lat, row.clean_lon], { icon: radarIcon, interactive: false }).addTo(map);
+  document.getElementById('dos-name').textContent=r.name;
+  document.getElementById('dos-meta').textContent=`${r.lga} • ${r.district}`;
+  buildStory(r);
+  
+  // Future Image Placeholder Logic
+  const pFrame = document.getElementById('d-photo');
+  if(r.photo_url) { pFrame.style.display = 'block'; pFrame.style.backgroundImage = `url('${r.photo_url}')`; }
+  else { pFrame.style.display = 'none'; }
 
-                    const drawFacilityLine = (distanceKm, name, color, angleDeg) => {
-                        if (!distanceKm || distanceKm === 0) return;
-                        const angleRad = angleDeg * (Math.PI / 180);
-                        const latOffset = (distanceKm / 111) * Math.cos(angleRad);
-                        const lonOffset = (distanceKm / 111) * Math.sin(angleRad);
-                        const targetLat = row.clean_lat + latOffset;
-                        const targetLon = row.clean_lon + lonOffset;
+  set('d-hh',r.hh.toLocaleString()); set('d-vote',r.voters.toLocaleString());
+  set('d-youth',r.youth.toLocaleString()); set('d-women',r.women.toLocaleString());
 
-                        let line = L.polyline([[row.clean_lat, row.clean_lon], [targetLat, targetLon]], { color: color, weight: 2, dashArray: '5, 10', opacity: 0.8 }).addTo(map);
-                        let endpoint = L.circleMarker([targetLat, targetLon], { radius: 4, fillColor: color, color: '#fff', weight: 1, fillOpacity: 1 }).addTo(map);
-                        let label = L.tooltip({ permanent: true, direction: 'top', className: 'facility-tooltip', offset: [0, -5] })
-                            .setLatLng([targetLat, targetLon])
-                            .setContent(`<span style="color:${color};">${distanceKm} km</span><br/>${name}`)
-                            .addTo(map);
+  const epiEl=document.getElementById('d-epi'); const epiBox=document.getElementById('db-epi');
+  if(r.epi==='CRITICAL'){epiEl.innerHTML=`<span class="db-val-red">HIGH RISK — IMMINENT PATHOGEN OUTBREAK</span>`;epiBox.className='stat-card sc-red sc-span';}
+  else{epiEl.textContent=r.epi;epiBox.className='stat-card sc-span';}
 
-                        activeLines.push(line, endpoint, label);
-                    };
+  const stEl=document.getElementById('d-strand'); const stBox=document.getElementById('db-strand');
+  if(r.strand==='HIGHLY_STRANDED'){stEl.innerHTML=`<span class="db-val-red">ISOLATED: ZERO MOTORISED EVACUATION</span>`;stBox.className='stat-card sc-red sc-span';}
+  else{stEl.textContent=r.strand;stBox.className='stat-card sc-span';}
+  document.getElementById('d-preg').textContent=`${r.pregnant} pregnant females trapped without emergency access`;
 
-                    if (row.hosp_dist !== null && row.hosp_dist !== "N/A") drawFacilityLine(row.hosp_dist, row.hosp_name, "var(--cat-health)", 45);
-                    if (row.sch_dist !== null && row.sch_dist !== "N/A") drawFacilityLine(row.sch_dist, row.sch_name, "var(--cat-edu)", 135);
-                };
+  document.getElementById('d-flood').textContent=`Hazard Level ${r.flood} / 5`;
+  document.getElementById('d-wash').textContent=r.wash?'SEVERE: Open Defecation Present':'Adequate Sanitation';
+  document.getElementById('d-hosp').innerHTML=`${r.hosp_name} <br/><span style="color:var(--red);font-size:11px;font-style:italic">— ${r.hosp_dist}km traversing distance</span>`;
 
-                li.addEventListener('click', triggerDeepDive);
-                marker.on('click', triggerDeepDive);
-                rosterList.appendChild(li);
-            });
+  const mpiEl=document.getElementById('d-mpi');
+  if(r.mpi>=4) mpiEl.innerHTML=`<span class="db-val-red">${r.mpi} — EXTREME DEPRIVATION</span>`;
+  else if(r.mpi>=3) mpiEl.innerHTML=`<span class="db-val-amber">${r.mpi} — Elevated Vulnerability</span>`;
+  else mpiEl.textContent=`${r.mpi} — Stabilized`;
+  
+  set('d-nrg',r.energy); set('d-dig',r.digital); set('d-hvst',r.harvest); set('d-occ',r.occ);
 
-            document.getElementById('kpi-settlements').innerText = data.length;
-            document.getElementById('kpi-pop').innerText = totalPop.toLocaleString();
-            document.getElementById('kpi-households').innerText = totalHouseholds.toLocaleString();
-            document.getElementById('kpi-voters').innerText = totalVoters.toLocaleString();
-            document.getElementById('kpi-critical').innerText = criticalCount;
+  const erosEl=document.getElementById('d-eros'); const erosBox=document.getElementById('db-eros');
+  if(r.erosion==='CRITICAL_DISPLACEMENT'){erosEl.innerHTML=`<span class="db-val-red">IMMINENT LAND LOSS / EROSION</span>`;erosBox.className='stat-card sc-red sc-span';}
+  else{erosEl.textContent='Shoreline structurally stable';erosBox.className='stat-card sc-span';}
 
-            renderCharts(data);
-        }
+  set('d-dis',r.disaster?'Void: No community evacuation plan':'Structured Protocol');
+  set('d-jetty',r.jetty);
+  document.getElementById('d-priority').textContent=`"${r.proj}"`;
 
-        function renderCharts(data) {
-            Chart.defaults.color = '#cbd5e1';
-            Chart.defaults.borderColor = '#1e293b';
-            Chart.defaults.font.family = "'Times New Roman', Times, serif";
-            Chart.defaults.font.size = 13;
+  const ri=L.divIcon({html:'<div class="radar-inner"></div>',className:'radar-wrap',iconSize:[120,120],iconAnchor:[60,60]});
+  radarLayer=L.marker([r.lat,r.lon],{icon:ri,interactive:false}).addTo(map);
 
-            const animConfig = { duration: 2000, easing: 'easeOutQuart' };
+  if(r.hosp_dist!=='N/A'&&parseFloat(r.hosp_dist)>0){
+    const dist=parseFloat(r.hosp_dist);
+    const tlat=r.lat+(dist/111)*Math.cos(0.785);
+    const tlon=r.lon+(dist/111)*Math.sin(0.785);
+    const line=L.polyline([[r.lat,r.lon],[tlat,tlon]],{color:'#ef4444',weight:2,dashArray:'4,8',opacity:.8}).addTo(map);
+    const ep=L.circleMarker([tlat,tlon],{radius:4,fillColor:'#ef4444',color:'#fff',weight:1,fillOpacity:1}).addTo(map);
+    const lbl=L.tooltip({permanent:true,direction:'top',className:'ttip',offset:[0,-4]}).setLatLng([tlat,tlon]).setContent(`<span style="color:#ef4444">${dist}km</span><br/>${r.hosp_name}`).addTo(map);
+    mapLines.push(line,ep,lbl);
+  }
 
-            let catCounts = {};
-            data.forEach(d => { catCounts[d.ai_category] = (catCounts[d.ai_category] || 0) + 1; });
-            let pieLabels = Object.keys(catCounts);
-            let pieData = Object.values(catCounts);
-            let pieColors = pieLabels.map(label => catColors[label]);
+  document.getElementById('dossier').style.display='flex';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('right-panel').scrollTop=0;
+}
 
-            if (pieChartInstance) pieChartInstance.destroy();
-            pieChartInstance = new Chart(document.getElementById('pieChart').getContext('2d'), {
-                type: 'doughnut',
-                data: { labels: pieLabels, datasets: [{ data: pieData, backgroundColor: pieColors, borderWidth: 2, borderColor: '#040d1a', hoverOffset: 8 }] },
-                options: { responsive: true, maintainAspectRatio: false, animation: animConfig, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { weight: 'bold' } } } }, cutout: '60%' }
-            });
+function set(id,val){const el=document.getElementById(id);if(el)el.textContent=val;}
 
-            let routeCounts = { "Land Access Only": 0, "Water Access Only": 0, "Mixed / Land & Water": 0 };
-            data.forEach(d => { if(routeCounts[d.clean_route] !== undefined) routeCounts[d.clean_route]++; });
+function buildStory(r){
+  let s=`<span class="hl">${r.name}</span> currently supports an estimated <span class="hl">${r.pop.toLocaleString()}</span> lives operating under structurally vulnerable parameters. `;
+  
+  if(r.mpi>=4) s+=`Intelligence flags this zone with <span class="hl-red">extreme multidimensional poverty</span>, suffering ${r.mpi} distinct deprivations across living standards and education. `;
+  else if(r.epi==='CRITICAL') s+=`Vulnerability is exponentially increased by a <span class="hl-red">critical waterborne pathogen risk</span>, driven by severe sanitary deficits. `;
+  else if(r.strand==='HIGHLY_STRANDED') s+=`The settlement operates in <span class="hl-amber">total geographic isolation</span>, entirely disconnected from motorized evacuation logistics. `;
+  
+  if(r.strand==='HIGHLY_STRANDED'&&r.pregnant>0) s+=`<br/><br/>Of immediate concern: <span class="hl-red">${r.pregnant} pregnant women</span> identified here face life-threatening consequences, unable to reach maternal healthcare nodes in an emergency. `;
+  
+  s+=`Strategic stabilization dictates localized intervention must address <span class="hl">${r.cat}</span>, aligning with the community's explicit request: <em>"${r.proj}"</em>.`;
+  document.getElementById('dos-story').innerHTML=s;
+}
 
-            if (accessChartInstance) accessChartInstance.destroy();
-            accessChartInstance = new Chart(document.getElementById('accessChart').getContext('2d'), {
-                type: 'polarArea',
-                data: { 
-                    labels: Object.keys(routeCounts), 
-                    datasets: [{ data: Object.values(routeCounts), backgroundColor: ['#0ea5e9', '#6366f1', '#f59e0b'], borderWidth: 2, borderColor: '#040d1a' }] 
-                },
-                options: { responsive: true, maintainAspectRatio: false, animation: animConfig, scales: { r: { ticks: { display: false }, grid: { color: 'rgba(255,255,255,0.1)' } } }, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { weight: 'bold' } } } } }
-            });
+function closeDossier(){
+  document.getElementById('dossier').style.display='none';
+  if(radarLayer){map.removeLayer(radarLayer);radarLayer=null;}
+  mapLines.forEach(l=>map.removeLayer(l));mapLines=[];
+  const pg=document.getElementById('pg-'+activeTab);
+  if(pg){ document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); pg.classList.add('active'); }
+  renderCharts();
+}
 
-            let totalYouth = data.reduce((sum, d) => sum + d.clean_youth, 0);
-            let totalWomen = data.reduce((sum, d) => sum + d.clean_women, 0);
-            let totalPop = data.reduce((sum, d) => sum + d.clean_pop, 0);
-            let other = totalPop - (totalYouth + totalWomen);
-            if(other < 0) other = 0; 
-
-            if (demoChartInstance) demoChartInstance.destroy();
-            demoChartInstance = new Chart(document.getElementById('demographicsChart').getContext('2d'), {
-                type: 'pie',
-                data: { 
-                    labels: ['Est. Youth', 'Est. Women', 'Other'], 
-                    datasets: [{ data: [totalYouth, totalWomen, other], backgroundColor: ['#0ea5e9', '#8b5cf6', '#cbd5e1'], borderWidth: 2, borderColor: '#040d1a', hoverOffset: 8 }] 
-                },
-                options: { responsive: true, maintainAspectRatio: false, animation: animConfig, plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { weight: 'bold' } } } } }
-            });
-        }
-
-        function openCommunityDetails(row, isCrit) {
-            document.getElementById('macro-view').style.display = 'none';
-            document.getElementById('micro-view').style.display = 'block';
-
-            document.getElementById('target-name').innerText = row.clean_name;
-            document.getElementById('target-lga').innerText = `${row.clean_lga} • ${row.clean_district}`;
-            
-            document.getElementById('target-ruler').innerText = row.clean_ruler;
-            document.getElementById('target-households-detail').innerText = row.clean_households.toLocaleString();
-            document.getElementById('target-pop').innerText = row.clean_pop.toLocaleString();
-            document.getElementById('target-voters-detail').innerText = row.clean_voters.toLocaleString();
-            document.getElementById('target-occ').innerText = row.clean_occ;
-            document.getElementById('target-route').innerText = row.clean_route;
-            document.getElementById('target-govt').innerText = row.clean_govt;
-            document.getElementById('target-amenities').innerText = row.clean_amenities;
-            document.getElementById('target-raw').innerText = `"${row.clean_project}"`;
-
-            document.getElementById('target-hosp-name').innerText = row.hosp_name;
-            document.getElementById('target-hosp-dist').innerText = row.hosp_dist ? `${row.hosp_dist} km • ${row.hosp_type}` : "--";
-            
-            document.getElementById('target-sch-name').innerText = row.sch_name;
-            document.getElementById('target-sch-dist').innerText = row.sch_dist ? `${row.sch_dist} km • ${row.sch_type}` : "--";
-
-            let riskLvl = isCrit ? "<span style='color: #ef4444;'>CRITICAL</span>" : "<span style='color: #f59e0b;'>MODERATE</span>";
-            let voterImpact = row.clean_voters > 0 ? ` impacting a registered voter base of ${row.clean_voters.toLocaleString()}` : "";
-            
-            let briefText = `<b>Strategic Evaluation:</b> The primary socio-economic bottleneck for this settlement operates under <b style="color: ${row.color};">${row.ai_category}</b> parameters. Resolving the stated intervention requirement ("${row.clean_project}") is classified as a <b>${riskLvl}</b> administrative priority${voterImpact}. Primary logistics mapped via ${row.clean_route}.`;
-            
-            document.getElementById('target-ai').innerHTML = briefText;
-        }
-
-        function closeDetails() {
-            document.getElementById('micro-view').style.display = 'none';
-            document.getElementById('macro-view').style.display = 'flex';
-            
-            if (activeRadar) map.removeLayer(activeRadar);
-            activeLines.forEach(layer => map.removeLayer(layer));
-            activeLines = [];
-            
-            renderCharts(masterData);
-        }
-
-        initApp();
-    </script>
+window.onload=boot;
+</script>
 </body>
 </html>
